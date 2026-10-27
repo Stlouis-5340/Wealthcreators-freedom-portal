@@ -29,7 +29,6 @@ const STORAGE_KEY = "wc-freedom-portal-v1";
 
 interface PersistedState {
   v: 1;
-  role: Role;
   expenses: Record<string, number>;
   streams: Record<string, number>;
   assets: Record<string, number>;
@@ -39,13 +38,19 @@ interface PersistedState {
 
 const EMPTY: PersistedState = {
   v: 1,
-  role: "member",
   expenses: {},
   streams: {},
   assets: {},
   liabilities: {},
   steps: {},
 };
+
+export interface PortalViewer {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+}
 
 const listeners = new Set<() => void>();
 let cachedRaw: string | null | undefined;
@@ -118,8 +123,7 @@ function defaultStepDone(id: string): boolean {
 }
 
 interface PortalContextValue {
-  role: Role;
-  setRole: (role: Role) => void;
+  viewer: PortalViewer;
   metrics: Metrics;
   roster: RosterRow[];
   expenses: ExpenseLine[];
@@ -137,7 +141,13 @@ interface PortalContextValue {
 
 const PortalContext = createContext<PortalContextValue | null>(null);
 
-export function PortalProvider({ children }: { children: ReactNode }) {
+export function PortalProvider({
+  viewer,
+  children,
+}: {
+  viewer: PortalViewer;
+  children: ReactNode;
+}) {
   const persisted = useSyncExternalStore(subscribe, readClient, () => EMPTY);
 
   const value = useMemo<PortalContextValue>(() => {
@@ -155,8 +165,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
     });
 
     return {
-      role: persisted.role,
-      setRole: (role) => write({ ...readClient(), role }),
+      viewer,
       metrics,
       roster,
       expenses,
@@ -204,7 +213,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
       resetDemo: clearStore,
       memberById: (id) => roster.find((member) => member.id === id),
     };
-  }, [persisted]);
+  }, [persisted, viewer]);
 
   return <PortalContext.Provider value={value}>{children}</PortalContext.Provider>;
 }
