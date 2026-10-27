@@ -17,7 +17,13 @@ import {
   updateLiabilityAction,
   updateStreamAction,
 } from "@/lib/plan-actions";
-import { nonNegative, type PortalSnapshot, type PortalViewer, type StoredMemberPlan } from "@/lib/plans";
+import {
+  nonNegative,
+  type ConnectedItem,
+  type PortalSnapshot,
+  type PortalViewer,
+  type StoredMemberPlan,
+} from "@/lib/plans";
 import { memberRow, type RosterRow } from "@/lib/roster";
 import type {
   AssetLine,
@@ -35,6 +41,8 @@ interface PortalContextValue {
   streams: PassiveStream[];
   assets: AssetLine[];
   liabilities: LiabilityLine[];
+  plaidConfigured: boolean;
+  connectedItems: ConnectedItem[];
   updateExpense: (id: string, monthly: number) => void;
   updateStream: (id: string, monthly: number) => void;
   updateAsset: (id: string, balance: number) => void;
@@ -71,6 +79,7 @@ export function PortalProvider({
 }) {
   const [plan, setPlan] = useState<StoredMemberPlan | null>(snapshot.plan);
   const [guideRoster, setGuideRoster] = useState<RosterRow[]>(snapshot.roster);
+  const [connectedItems, setConnectedItems] = useState<ConnectedItem[]>(snapshot.connectedItems);
   const [signature, setSignature] = useState(snapshot.signature);
   const chains = useRef(new Map<string, Promise<void>>());
 
@@ -78,6 +87,7 @@ export function PortalProvider({
     setSignature(snapshot.signature);
     setPlan(snapshot.plan);
     setGuideRoster(snapshot.roster);
+    setConnectedItems(snapshot.connectedItems);
   }
 
   const value = useMemo<PortalContextValue>(() => {
@@ -109,6 +119,8 @@ export function PortalProvider({
       streams: plan?.streams ?? [],
       assets: plan?.assets ?? [],
       liabilities: plan?.liabilities ?? [],
+      plaidConfigured: snapshot.plaidConfigured,
+      connectedItems,
       updateExpense: (id, monthly) => {
         if (!plan) return;
         const amount = nonNegative(monthly);
@@ -155,7 +167,7 @@ export function PortalProvider({
       },
       memberById: (id) => roster.find((member) => member.id === id),
     };
-  }, [guideRoster, plan, snapshot.viewer]);
+  }, [connectedItems, guideRoster, plan, snapshot.plaidConfigured, snapshot.viewer]);
 
   return <PortalContext.Provider value={value}>{children}</PortalContext.Provider>;
 }

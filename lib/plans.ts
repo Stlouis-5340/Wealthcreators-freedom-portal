@@ -28,10 +28,28 @@ export interface PortalViewer {
   role: Role;
 }
 
+export interface ConnectedAccount {
+  id: string;
+  name: string;
+  type: string;
+  subtype: string;
+  mask: string;
+  balance: number;
+  bucket: "asset" | "liability";
+}
+
+export interface ConnectedItem {
+  id: string;
+  institutionName: string;
+  accounts: ConnectedAccount[];
+}
+
 export interface PortalSnapshot {
   viewer: PortalViewer;
   plan: StoredMemberPlan | null;
   roster: RosterRow[];
+  plaidConfigured: boolean;
+  connectedItems: ConnectedItem[];
   signature: string;
 }
 
@@ -54,6 +72,22 @@ export function planSignature(plans: StoredMemberPlan[]): string {
           .join(","),
       ].join("|"),
     )
+    .join("||");
+}
+
+/** Totals and goal steps only, so a guide payload does not list account lines. */
+export function guideSignature(plans: StoredMemberPlan[]): string {
+  return plans
+    .map((plan) => {
+      const expenses = plan.expenses.reduce((sum, line) => sum + line.monthly, 0);
+      const passive = plan.streams.reduce((sum, line) => sum + line.monthly, 0);
+      const assets = plan.assets.reduce((sum, line) => sum + line.balance, 0);
+      const liabilities = plan.liabilities.reduce((sum, line) => sum + line.balance, 0);
+      const steps = plan.goals
+        .flatMap((goal) => goal.steps.map((step) => `${step.id}:${step.done ? 1 : 0}`))
+        .join(",");
+      return [plan.id, expenses, passive, assets, liabilities, steps].join("|");
+    })
     .join("||");
 }
 

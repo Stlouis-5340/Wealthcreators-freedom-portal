@@ -27,6 +27,7 @@ model User {
   assets      AssetLine[]
   liabilities LiabilityLine[]
   goals       Goal[]
+  plaidItems  PlaidItem[]
 }
 
 model GuideAssignment {
@@ -118,6 +119,37 @@ model Checkpoint {
   sort         Int
 
   @@index([goalId])
+}
+
+/// A member's Plaid Item. accessTokenEnc is an AES-256-GCM payload, never a client field.
+model PlaidItem {
+  id              String         @id @default(cuid())
+  memberId        String
+  member          User           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  itemId          String         @unique
+  accessTokenEnc  String
+  institutionId   String         @default("")
+  institutionName String
+  createdAt       DateTime       @default(now())
+  accounts        PlaidAccount[]
+
+  @@index([memberId])
+}
+
+model PlaidAccount {
+  id              String    @id @default(cuid())
+  itemRecordId    String
+  item            PlaidItem @relation(fields: [itemRecordId], references: [id], onDelete: Cascade)
+  plaidAccountId  String    @unique
+  name            String
+  type            String
+  subtype         String    @default("")
+  mask            String    @default("")
+  balance         Float
+  assetLineId     String?   @unique
+  liabilityLineId String?   @unique
+
+  @@index([itemRecordId])
 }
 
 model GoalStep {

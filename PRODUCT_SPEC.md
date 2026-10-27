@@ -41,7 +41,7 @@ Spending plan is the expense denominator for Freedom Score (intentional plan, no
 - **Goals tab**: 6-year wealth + personal goals; yearly checkpoints Y1–Y6; **this year simple steps**; progress %
 - **Spending plan**: expense categories feeding Freedom Score denominator
 - **Milestones**: Freedom Score bands 25/50/75/100/125%
-- **Accounts**: Connect accounts empty/CTA state (Plaid Link stub — button that explains not wired yet)
+- **Accounts**: Plaid Link in sandbox when keys are set. Missing keys keep a branded not-configured state. See the README.
 - Education callout by Freedom Score stage
 
 ### Wealth Guide app
@@ -60,7 +60,7 @@ Spending plan is the expense denominator for Freedom Score (intentional plan, no
 - Polish UI to feel production-quality branded dark theme — not a generic shadcn default blue
 
 ## Out of scope for this first pass
-- Real Plaid keys/production Link
+- Production Plaid (sandbox Link is documented in the README)
 - Real database / production auth
 - Mighty Networks / Whop deep integration
 - Deploy to Vercel (document later; Origin is source of truth)

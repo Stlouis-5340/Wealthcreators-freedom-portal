@@ -19,8 +19,10 @@
     "@prisma/client": "^6.19.3",
     "next": "16.4.3",
     "next-auth": "^5.0.0-beta.32",
+    "plaid": "^49.0.0",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "react-plaid-link": "^5.0.0"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
