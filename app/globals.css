@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0a0a;
+  --surface: #111111;
+  --surface-raised: #1a1a1a;
+  --gold: #e8b84a;
+  --gold-bright: #f0c050;
+  --gold-muted: #c49a3a;
+  --ink: #f5f5f5;
+  --muted: #a3a3a3;
+  --line: #2a2a2a;
+  --success: #7dbe8a;
+  --warning: #d7a15a;
+  --danger: #c47b7b;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-gold: var(--gold);
+  --color-gold-bright: var(--gold-bright);
+  --color-gold-muted: var(--gold-muted);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+body {
+  background:
+    radial-gradient(900px 420px at 8% -10%, rgba(232, 184, 74, 0.09), transparent 55%),
+    var(--background);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: #e8b84a;
+  color: #0a0a0a;
+}
+
+@layer components {
+  .wc-card {
+    @apply rounded-2xl border border-line bg-surface;
+  }
+
+  .wc-eyebrow {
+    @apply text-[11px] font-medium uppercase tracking-[0.16em] text-gold-muted;
+  }
+
+  .wc-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold;
+  }
+
+  .wc-btn-primary {
+    @apply bg-gold text-background hover:bg-gold-bright;
+  }
+
+  .wc-btn-ghost {
+    @apply border border-line bg-transparent text-ink hover:border-gold-muted hover:bg-surface-raised;
+  }
+
+  .wc-input {
+    @apply w-full rounded-xl border border-line bg-background px-3 py-2 text-sm text-ink outline-none focus:border-gold;
+  }
+}
+
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: 1rem;
+  z-index: 50;
+  transform: translateY(-200%);
+  border-radius: 999px;
+  background: #e8b84a;
+  color: #0a0a0a;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+input[type="checkbox"] {
+  accent-color: #e8b84a;
+}
+
+input[type="number"] {
+  color-scheme: dark;
+}
