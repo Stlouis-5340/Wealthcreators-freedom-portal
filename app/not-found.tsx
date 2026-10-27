@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function NotFound() {
   return (
-    <section className="wc-card max-w-xl p-6 sm:p-8">
+    <section className="wc-card mx-auto mt-16 max-w-xl p-6 sm:p-8">
       <p className="wc-eyebrow">Freedom Portal</p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight">
         That page is not in the portal
