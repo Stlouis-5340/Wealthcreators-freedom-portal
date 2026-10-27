@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Portal account. role is "member" or "guide".
+model User {
+  id           String   @id
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String
+  lastActive   String   @default("")
+  coachingNote String   @default("")
+  rosterSort   Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  guiding     GuideAssignment[] @relation("GuideUser")
+  guides      GuideAssignment[] @relation("MemberUser")
+  expenses    ExpenseLine[]
+  streams     PassiveStream[]
+  assets      AssetLine[]
+  liabilities LiabilityLine[]
+  goals       Goal[]
+}
+
+model GuideAssignment {
+  guideId  String
+  memberId String
+  sort     Int    @default(0)
+  guide    User   @relation("GuideUser", fields: [guideId], references: [id], onDelete: Cascade)
+  member   User   @relation("MemberUser", fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@id([guideId, memberId])
+}
+
+model ExpenseLine {
+  id       String @id
+  memberId String
+  member   User   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  name     String
+  monthly  Float
+  note     String
+  sort     Int
+
+  @@index([memberId])
+}
+
+model PassiveStream {
+  id       String @id
+  memberId String
+  member   User   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  name     String
+  monthly  Float
+  source   String
+  sort     Int
+
+  @@index([memberId])
+}
+
+model AssetLine {
+  id          String @id
+  memberId    String
+  member      User   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  name        String
+  institution String
+  group       String
+  balance     Float
+  sort        Int
+
+  @@index([memberId])
+}
+
+model LiabilityLine {
+  id       String @id
+  memberId String
+  member   User   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  name     String
+  balance  Float
+  note     String
+  sort     Int
+
+  @@index([memberId])
+}
+
+model Goal {
+  id             String       @id
+  memberId       String
+  member         User         @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  kind           String
+  title          String
+  summary        String
+  progressSource String
+  baseline       Float?
+  baselineLabel  String?
+  target         Float?
+  targetLabel    String
+  sort           Int
+  checkpoints    Checkpoint[]
+  steps          GoalStep[]
+
+  @@index([memberId])
+}
+
+model Checkpoint {
+  id           String @id
+  goalId       String
+  goal         Goal   @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  year         Int
+  calendarYear Int
+  label        String
+  targetValue  Float?
+  sort         Int
+
+  @@index([goalId])
+}
+
+model GoalStep {
+  id     String  @id
+  goalId String
+  goal   Goal    @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  title  String
+  detail String
+  done   Boolean
+  sort   Int
+
+  @@index([goalId])
+}

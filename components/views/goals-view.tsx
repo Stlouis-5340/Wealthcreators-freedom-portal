@@ -6,8 +6,8 @@ import { usePortal } from "@/components/portal-provider";
 import { GUIDE } from "@/lib/sample-data";
 
 export function GoalsView() {
-  const { roster, toggleStep } = usePortal();
-  const alex = roster.find((member) => member.id === "alex");
+  const { roster, toggleStep, viewer } = usePortal();
+  const alex = roster.find((member) => member.id === viewer.id);
   const goals = alex?.goals ?? [];
   const wealth = goals.filter((goal) => goal.kind === "wealth");
   const personal = goals.filter((goal) => goal.kind === "personal");
