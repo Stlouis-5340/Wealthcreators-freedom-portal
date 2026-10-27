@@ -8,15 +8,13 @@ Sign-in is Auth.js. Plans, goals, balances, and guide assignments are stored in 
 
 Sign-in uses [Auth.js](https://authjs.dev) (`next-auth` v5) with email and password. The session is a JWT that carries Member or Wealth Guide. Accounts, password hashes, and plan data live in the database.
 
-The database is [Prisma](https://www.prisma.io/) on SQLite for local development. The schema uses ordinary strings, numbers, booleans, and datetimes, so the same models move to Postgres: change the datasource `provider` to `postgresql`, set `DATABASE_URL` to a Postgres URL, create a Postgres migration with `prisma migrate dev`, and run the seed. The checked-in migration is SQLite SQL. Do not point that file at Postgres.
-
-SQLite is the fit here because the app has to migrate and seed on a laptop with no hosted database account. A free hosted Postgres URL can replace `DATABASE_URL` when you take that step.
+The database is [Prisma](https://www.prisma.io/). Local development stays on SQLite (`prisma/schema.prisma` and `prisma/migrations`). Production on Vercel uses Postgres (`prisma/postgres/schema.prisma` and `prisma/postgres/migrations`). The models are the same strings, numbers, booleans, and datetimes. Prisma cannot switch the provider inside one schema file, so the build checks that those two model blocks still match. Do not run the SQLite migrations against Postgres.
 
 - Route protection sits in `proxy.ts` (the Next.js 16 replacement for `middleware.ts`).
 - Demo logins are Member Alex Rivera and Wealth Guide Jordan Lee. Their password hashes are created by the seed. Other roster members are users with plans, assigned to Jordan, and do not have published passwords.
 - A member writes only their own spending lines, balances, and steps. A guide reads assigned members and does not see institutions, account numbers, or transactions, including accounts connected through Plaid.
 
-`AUTH_SECRET` is the session secret. `DATABASE_URL` points at the database file. Neither belongs in git. Demo passwords below are preview logins, not production credentials.
+`AUTH_SECRET` is the session secret. `DATABASE_URL` points at SQLite locally and at Postgres in production. Neither belongs in git. Demo passwords below are preview logins, not production credentials.
 
 ## Run locally
 
@@ -44,7 +42,7 @@ npm run build
 npm run lint
 ```
 
-`next build` reads `.env.local` and expects the migrated database, because signed-in pages read Prisma. Set `AUTH_SECRET` before a production build. The build succeeds when the Plaid id and secret are blank.
+`npm run build` reads `.env.local`. With a `file:` database URL it generates the SQLite client and does not contact Postgres. Signed-in pages still need `AUTH_SECRET` and a migrated local database. The build succeeds when the Plaid id and secret are blank.
 
 ## Demo logins
 
@@ -90,7 +88,7 @@ Sample passive income includes dividends, interest, net rent, and a royalty. Wag
 
 ## Connect a bank with Plaid
 
-v1 uses [Plaid Link](https://plaid.com/docs/link/) in **sandbox**. The server uses the official `plaid` Node SDK. The browser uses `react-plaid-link` with a link token created on the server. Access tokens are encrypted with AES-256-GCM before they are written to SQLite. The key is derived from `AUTH_SECRET`. They are not sent to the browser and they are not on the guide payload.
+v1 uses [Plaid Link](https://plaid.com/docs/link/) in **sandbox**. The server uses the official `plaid` Node SDK. The browser uses `react-plaid-link` with a link token created on the server. Access tokens are encrypted with AES-256-GCM before they are written to the database. The key is derived from `AUTH_SECRET`. The ciphertext stays on the server. It is not sent to the browser and not included on the guide payload.
 
 With `PLAID_CLIENT_ID` or `PLAID_SECRET` empty, Assets still loads. **Connect with Plaid** opens a branded “Plaid is not configured” dialog and does not call Plaid. `npm run build` does not require the keys.
 
@@ -134,14 +132,48 @@ Use the sandbox secret only. Do not put a development or production secret in th
 - **Passive tags on synced accounts.** Plaid balances feed net worth and the yield denominator. They do not yet create passive income lines. The member still edits those streams by hand.
 - **Other members' line items.** Alex has the full sample categories. The rest of the roster is stored as spending, passive income, asset, and liability totals plus their goals, which is what the guide sees.
 - **Guide privacy.** Roster and member pages show aggregates and goals. They do not show institutions, account numbers, or transactions.
-- No Mighty Networks or Whop integration, no production deploy config.
+- No Mighty Networks or Whop integration.
+
+## Go live on Vercel
+
+Local `npm run dev` stays on SQLite. The hosted app needs Postgres, because a serverless function cannot keep a SQLite file. `vercel.json` sets the build command to `npm run build`. On Vercel that generates the Postgres Prisma client and applies `prisma/postgres/migrations`. `postinstall` still runs `prisma generate` for the local SQLite client.
+
+1. Create a free Postgres database at [Neon](https://neon.tech). Copy the **pooled** connection string and the **direct** connection string.
+2. In the [Vercel dashboard](https://vercel.com/new), import this repo. Leave the framework preset on Next.js.
+3. Set these environment variables for Production. Use the same names for Preview if those deploys should boot. Real values stay in Vercel, not in git.
+
+| Name | Value |
+| --- | --- |
+| `AUTH_SECRET` | Long random string (`openssl rand -base64 32`) |
+| `AUTH_URL` | `https://your-app.vercel.app` after the first deploy shows the URL |
+| `AUTH_TRUST_HOST` | `true` |
+| `DATABASE_URL` | Pooled Postgres URL. Neon example: `postgresql://USER:PASSWORD@HOST-pooler.../neondb?sslmode=require&pgbouncer=true&connection_limit=1` |
+| `DIRECT_URL` | Direct Postgres URL, used for migrations. If there is no pooler, set this to the same value as `DATABASE_URL`. |
+| `PLAID_CLIENT_ID` | Blank until you want Link |
+| `PLAID_SECRET` | Blank until you want Link |
+| `PLAID_ENV` | `sandbox` |
+
+4. Deploy. The build migrates the empty database. It does not seed, so demo logins do not exist yet.
+5. From your laptop, seed the demo once. Use the **direct** Postgres URL (not the pooler) for both variables. Running migrate again is safe if the Vercel build already applied it.
+
+```bash
+DATABASE_URL="postgresql://DIRECT..." DIRECT_URL="postgresql://DIRECT..." npm run db:migrate:postgres
+DATABASE_URL="postgresql://DIRECT..." npm run db:seed:postgres
+npx prisma generate
+```
+
+`db:seed:postgres` creates Alex Rivera and Jordan Lee. The last command restores the SQLite Prisma client so `npm run dev` keeps using `prisma/dev.db`.
+
+6. Open the Vercel URL and sign in with the demo logins. Plaid stays on the not-configured screen until the Plaid variables are set. Preview deployments need a Postgres URL too. They can share this database for the demo, or use a separate Neon branch.
+
+If Prisma reports a prepared-statement error at runtime, the pooled URL needs `&pgbouncer=true`. Migrations use `DIRECT_URL`, not the pooled URL.
 
 ## Suggested next steps
 
-1. Invite flow for new members, and a Postgres migration when more than one server needs the data.
+1. Invite flow for new members.
 2. Score snapshots over time, still stored per member.
 3. Member-confirmed passive tags on synced balances. Never store bank passwords. Keep raw transactions off the guide view.
 4. Decide the gray-area rules (Social Security, DRIP, semi-passive businesses) in product, not only in copy.
-5. Deploy when those boundaries are real. Set `AUTH_SECRET`, `AUTH_URL`, `DATABASE_URL`, and the Plaid sandbox variables in the host. Production Link is a later switch of `PLAID_ENV` and the secret. This repo does not deploy yet.
+5. Switch `PLAID_ENV` to `production` with the production secret when Link should use real institutions.
 
 The full v1 note lives in [PRODUCT_SPEC.md](./PRODUCT_SPEC.md).
