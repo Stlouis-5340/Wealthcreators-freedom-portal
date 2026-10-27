@@ -63,7 +63,7 @@ Spending plan is the expense denominator for Freedom Score (intentional plan, no
 - Production Plaid (sandbox Link is documented in the README)
 - Real database / production auth
 - Mighty Networks / Whop deep integration
-- Deploy to Vercel (document later; Origin is source of truth)
+- A linked Vercel project (the README Go live section is the deploy path)
 
 ## Success criteria
 1. `npm run build` succeeds.

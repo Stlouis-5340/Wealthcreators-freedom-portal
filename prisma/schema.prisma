@@ -2,6 +2,7 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Local SQLite. Production uses prisma/postgres/schema.prisma (same models).
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")

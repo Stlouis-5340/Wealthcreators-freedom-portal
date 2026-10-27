@@ -1,0 +1,168 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+// Same models as prisma/schema.prisma. Vercel generates this client and migrates Postgres.
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/// Portal account. role is "member" or "guide".
+model User {
+  id           String   @id
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String
+  lastActive   String   @default("")
+  coachingNote String   @default("")
+  rosterSort   Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  guiding     GuideAssignment[] @relation("GuideUser")
+  guides      GuideAssignment[] @relation("MemberUser")
+  expenses    ExpenseLine[]
+  streams     PassiveStream[]
+  assets      AssetLine[]
+  liabilities LiabilityLine[]
+  goals       Goal[]
+  plaidItems  PlaidItem[]
+}
+
+model GuideAssignment {
+  guideId  String
+  memberId String
+  sort     Int    @default(0)
+  guide    User   @relation("GuideUser", fields: [guideId], references: [id], onDelete: Cascade)
+  member   User   @relation("MemberUser", fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@id([guideId, memberId])
+}
+
+model ExpenseLine {
+  id       String @id
+  memberId String
+  member   User   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  name     String
+  monthly  Float
+  note     String
+  sort     Int
+
+  @@index([memberId])
+}
+
+model PassiveStream {
+  id       String @id
+  memberId String
+  member   User   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  name     String
+  monthly  Float
+  source   String
+  sort     Int
+
+  @@index([memberId])
+}
+
+model AssetLine {
+  id          String @id
+  memberId    String
+  member      User   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  name        String
+  institution String
+  group       String
+  balance     Float
+  sort        Int
+
+  @@index([memberId])
+}
+
+model LiabilityLine {
+  id       String @id
+  memberId String
+  member   User   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  name     String
+  balance  Float
+  note     String
+  sort     Int
+
+  @@index([memberId])
+}
+
+model Goal {
+  id             String       @id
+  memberId       String
+  member         User         @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  kind           String
+  title          String
+  summary        String
+  progressSource String
+  baseline       Float?
+  baselineLabel  String?
+  target         Float?
+  targetLabel    String
+  sort           Int
+  checkpoints    Checkpoint[]
+  steps          GoalStep[]
+
+  @@index([memberId])
+}
+
+model Checkpoint {
+  id           String @id
+  goalId       String
+  goal         Goal   @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  year         Int
+  calendarYear Int
+  label        String
+  targetValue  Float?
+  sort         Int
+
+  @@index([goalId])
+}
+
+/// A member's Plaid Item. accessTokenEnc is an AES-256-GCM payload, never a client field.
+model PlaidItem {
+  id              String         @id @default(cuid())
+  memberId        String
+  member          User           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  itemId          String         @unique
+  accessTokenEnc  String
+  institutionId   String         @default("")
+  institutionName String
+  createdAt       DateTime       @default(now())
+  accounts        PlaidAccount[]
+
+  @@index([memberId])
+}
+
+model PlaidAccount {
+  id              String    @id @default(cuid())
+  itemRecordId    String
+  item            PlaidItem @relation(fields: [itemRecordId], references: [id], onDelete: Cascade)
+  plaidAccountId  String    @unique
+  name            String
+  type            String
+  subtype         String    @default("")
+  mask            String    @default("")
+  balance         Float
+  assetLineId     String?   @unique
+  liabilityLineId String?   @unique
+
+  @@index([itemRecordId])
+}
+
+model GoalStep {
+  id     String  @id
+  goalId String
+  goal   Goal    @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  title  String
+  detail String
+  done   Boolean
+  sort   Int
+
+  @@index([goalId])
+}
