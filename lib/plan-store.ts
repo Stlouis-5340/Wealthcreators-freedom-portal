@@ -1,10 +1,13 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { isPlaidConfigured } from "@/lib/plaid-config";
 import { memberRow } from "@/lib/roster";
 import { memberSeeds, type SeedPlan } from "@/lib/sample-plans";
 import {
+  guideSignature,
   planSignature,
   toClient,
+  type ConnectedItem,
   type PortalSnapshot,
   type PortalViewer,
   type StoredMemberPlan,
@@ -106,17 +109,84 @@ export function toStoredPlan(user: PlanUser): StoredMemberPlan {
   };
 }
 
+function connectionSignature(items: ConnectedItem[]): string {
+  return items
+    .map(
+      (item) =>
+        `${item.id}:${item.accounts
+          .map((account) => `${account.id}:${account.balance}:${account.mask}`)
+          .join(",")}`,
+    )
+    .join(";");
+}
+
 function snapshotFor(
   viewer: PortalViewer,
   plan: StoredMemberPlan | null,
   rosterPlans: StoredMemberPlan[],
+  connectedItems: ConnectedItem[],
 ): PortalSnapshot {
-  return toClient({
+  const signatureBase = viewer.role === "guide" ? guideSignature(rosterPlans) : planSignature(rosterPlans);
+  const snapshot = toClient({
     viewer,
     plan,
     roster: rosterPlans.map(memberRow),
-    signature: planSignature(rosterPlans),
+    plaidConfigured: isPlaidConfigured(),
+    connectedItems,
+    signature: `${signatureBase}#${viewer.role === "guide" ? "" : connectionSignature(connectedItems)}`,
   });
+  assertSnapshotPrivacy(snapshot);
+  return snapshot;
+}
+
+function assertSnapshotPrivacy(snapshot: PortalSnapshot): void {
+  const json = JSON.stringify(snapshot);
+  if (json.includes("accessToken") || json.includes("access_token") || json.includes("passwordHash")) {
+    throw new Error("Portal snapshot included a secret field.");
+  }
+  if (snapshot.viewer.role !== "guide") return;
+  if (snapshot.plan !== null || snapshot.connectedItems.length > 0) {
+    throw new Error("Guide snapshot included member account detail.");
+  }
+  for (const word of ["Vanguard", "Fidelity", "TreasuryDirect"]) {
+    if (json.includes(word)) throw new Error("Guide snapshot included an institution name.");
+  }
+}
+
+async function connectedItemsFor(memberId: string): Promise<ConnectedItem[]> {
+  const items = await prisma.plaidItem.findMany({
+    where: { memberId },
+    orderBy: { createdAt: "asc" },
+    select: {
+      id: true,
+      institutionName: true,
+      accounts: {
+        orderBy: { name: "asc" },
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          subtype: true,
+          mask: true,
+          balance: true,
+          liabilityLineId: true,
+        },
+      },
+    },
+  });
+  return items.map((item) => ({
+    id: item.id,
+    institutionName: item.institutionName,
+    accounts: item.accounts.map((account) => ({
+      id: account.id,
+      name: account.name,
+      type: account.type,
+      subtype: account.subtype,
+      mask: account.mask,
+      balance: account.balance,
+      bucket: account.liabilityLineId ? ("liability" as const) : ("asset" as const),
+    })),
+  }));
 }
 
 export async function loadPortalSnapshot(input: {
@@ -134,6 +204,7 @@ export async function loadPortalSnapshot(input: {
       { id: user.id, name: user.name, email: user.email, role: "member" },
       plan,
       [plan],
+      await connectedItemsFor(user.id),
     );
   }
 
@@ -152,6 +223,7 @@ export async function loadPortalSnapshot(input: {
     { id: guide.id, name: guide.name, email: guide.email, role: "guide" },
     null,
     plans,
+    [],
   );
 }
 
@@ -162,8 +234,18 @@ export async function replaceMemberPlan(memberId: string, plan: SeedPlan): Promi
     await tx.goal.deleteMany({ where: { memberId } });
     await tx.expenseLine.deleteMany({ where: { memberId } });
     await tx.passiveStream.deleteMany({ where: { memberId } });
-    await tx.assetLine.deleteMany({ where: { memberId } });
-    await tx.liabilityLine.deleteMany({ where: { memberId } });
+    const linked = await tx.plaidAccount.findMany({
+      where: { item: { memberId } },
+      select: { assetLineId: true, liabilityLineId: true },
+    });
+    const keepAssets = linked.flatMap((row) => (row.assetLineId ? [row.assetLineId] : []));
+    const keepLiabilities = linked.flatMap((row) => (row.liabilityLineId ? [row.liabilityLineId] : []));
+    await tx.assetLine.deleteMany({
+      where: keepAssets.length > 0 ? { memberId, id: { notIn: keepAssets } } : { memberId },
+    });
+    await tx.liabilityLine.deleteMany({
+      where: keepLiabilities.length > 0 ? { memberId, id: { notIn: keepLiabilities } } : { memberId },
+    });
 
     if (plan.expenses.length > 0) {
       await tx.expenseLine.createMany({
@@ -215,6 +297,16 @@ export async function updateMemberAmount(input: {
 }): Promise<boolean> {
   const amount = input.amount;
   const where = { id: input.lineId, memberId: input.memberId };
+  if (input.kind === "asset" || input.kind === "liability") {
+    const linked = await prisma.plaidAccount.findFirst({
+      where:
+        input.kind === "asset"
+          ? { assetLineId: input.lineId, item: { memberId: input.memberId } }
+          : { liabilityLineId: input.lineId, item: { memberId: input.memberId } },
+      select: { id: true },
+    });
+    if (linked) return false;
+  }
   if (input.kind === "expense") {
     const result = await prisma.expenseLine.updateMany({ where, data: { monthly: amount } });
     return result.count === 1;

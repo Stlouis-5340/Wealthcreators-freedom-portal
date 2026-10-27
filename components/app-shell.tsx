@@ -51,8 +51,8 @@ export function AppShell({
   function handleReset() {
     const confirmed = window.confirm(
       user.role === "guide"
-        ? "Reset seeded plans and steps for your assigned members?"
-        : "Reset your spending plan, balances, and steps to the seeded sample?",
+        ? "Reset seeded plans and steps for your assigned members? Plaid connections stay in place."
+        : "Reset your spending plan, sample balances, and steps to the seeded sample? Plaid connections stay in place.",
     );
     if (!confirmed) return;
     resetDemo();
@@ -107,8 +107,9 @@ export function AppShell({
           {children}
           <p className="mt-12 max-w-3xl text-xs leading-5 text-muted">
             Seeded sample plan for the Wealth Creators demo, as of October 27, 2026.
-            Edits are saved to the portal database. Freedom Score and yield are planning
-            tools, not investment advice.
+            Edits are saved to the portal database. Plaid access tokens stay on the server,
+            and guides see totals only. Freedom Score and yield are planning tools, not
+            investment advice.
           </p>
         </main>
       </div>
