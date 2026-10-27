@@ -3,6 +3,7 @@ import { Suspense, type ReactNode } from "react";
 import { auth, isPortalRole } from "@/auth";
 import { AppShell } from "@/components/app-shell";
 import { PortalProvider } from "@/components/portal-provider";
+import { loadPortalSnapshot } from "@/lib/plan-store";
 
 export const instant = false;
 
@@ -17,22 +18,17 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
 async function AuthedShell({ children }: { children: ReactNode }) {
   const session = await auth();
   const user = session?.user;
-  if (!user || !isPortalRole(user.role)) redirect("/login");
+  if (!user?.id || !isPortalRole(user.role)) redirect("/login");
+  const snapshot = await loadPortalSnapshot({ id: user.id, role: user.role });
+  if (!snapshot) redirect("/login");
 
   return (
-    <PortalProvider
-      viewer={{
-        id: user.id,
-        name: user.name ?? "Member",
-        email: user.email ?? "",
-        role: user.role,
-      }}
-    >
+    <PortalProvider snapshot={snapshot}>
       <AppShell
         user={{
-          name: user.name ?? "Member",
-          email: user.email ?? "",
-          role: user.role,
+          name: snapshot.viewer.name,
+          email: snapshot.viewer.email,
+          role: snapshot.viewer.role,
         }}
       >
         {children}

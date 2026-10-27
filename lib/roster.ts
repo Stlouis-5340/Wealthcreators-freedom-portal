@@ -1,25 +1,7 @@
 import { daysSince } from "./format";
-import {
-  computeMetrics,
-  freedomProgress,
-  resolveGoals,
-  stepTotals,
-  totalsFromLines,
-} from "./metrics";
-import {
-  alexGoals,
-  alexIdentity,
-  staticMembers,
-  type MemberSeed,
-} from "./sample-data";
-import type {
-  AssetLine,
-  ExpenseLine,
-  LiabilityLine,
-  Metrics,
-  PassiveStream,
-  ResolvedGoal,
-} from "./types";
+import { freedomProgress, resolveGoals, stepTotals, totalsFromLines } from "./metrics";
+import type { StoredMemberPlan } from "./plans";
+import type { Metrics, ResolvedGoal } from "./types";
 
 export interface MemberFlags {
   needsAttention: boolean;
@@ -46,14 +28,6 @@ export interface RosterRow {
   flags: MemberFlags;
   statuses: StatusLabel[];
   goals: ResolvedGoal[];
-}
-
-export interface LiveAlexInput {
-  expenses: ExpenseLine[];
-  streams: PassiveStream[];
-  assets: AssetLine[];
-  liabilities: LiabilityLine[];
-  stepOverrides: Record<string, boolean>;
 }
 
 export function flagsFor(input: {
@@ -117,24 +91,7 @@ function rowFrom(input: {
   };
 }
 
-function staticRow(member: MemberSeed): RosterRow {
-  const metrics = computeMetrics({
-    monthlyPassive: member.passiveMonthly,
-    monthlyExpenses: member.expensesMonthly,
-    totalAssets: member.assetsTotal,
-    totalLiabilities: member.liabilitiesTotal,
-  });
-  return rowFrom({
-    id: member.id,
-    name: member.name,
-    lastActive: member.lastActive,
-    coachingNote: member.coachingNote,
-    metrics,
-    goals: resolveGoals(member.goals, metrics),
-  });
-}
-
-export function alexCoachingNote(row: Pick<RosterRow, "goals" | "metrics">): string {
+export function coachingNoteFromOpenSteps(row: Pick<RosterRow, "goals" | "metrics">): string {
   const open = row.goals.flatMap((goal) => goal.steps).filter((step) => !step.done);
   const score =
     row.metrics.freedomScore == null
@@ -150,19 +107,21 @@ export function alexCoachingNote(row: Pick<RosterRow, "goals" | "metrics">): str
   return `Freedom Score is ${score}. Still open this year: ${preview}.`;
 }
 
-export function buildRoster(live: LiveAlexInput): RosterRow[] {
-  const metrics = totalsFromLines(live);
-  const goals = resolveGoals(alexGoals, metrics, live.stepOverrides);
-  const alex = rowFrom({
-    id: alexIdentity.id,
-    name: alexIdentity.name,
-    lastActive: alexIdentity.lastActive,
-    coachingNote: "",
+export function memberRow(plan: StoredMemberPlan): RosterRow {
+  const metrics = totalsFromLines(plan);
+  const goals = resolveGoals(plan.goals, metrics);
+  const row = rowFrom({
+    id: plan.id,
+    name: plan.name,
+    lastActive: plan.lastActive,
+    coachingNote: plan.coachingNote,
     metrics,
     goals,
   });
-  alex.coachingNote = alexCoachingNote(alex);
-  return [alex, ...staticMembers.map(staticRow)];
+  if (!plan.coachingNote.trim()) {
+    row.coachingNote = coachingNoteFromOpenSteps(row);
+  }
+  return row;
 }
 
 export type RosterFilter =

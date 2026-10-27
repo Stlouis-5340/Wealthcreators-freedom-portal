@@ -31,7 +31,7 @@ export function AssetsView() {
       <PageHeader
         eyebrow="Net worth and assets"
         title="What you own, what you owe, what it yields"
-        lede="Balances here are sample figures you can edit. Yield on assets uses annual passive income divided by total assets. Plaid Link is not connected in this build."
+        lede="Balances are saved on your plan. Yield on assets uses annual passive income divided by total assets. Plaid Link is not connected in this build."
       />
 
       <section className="grid gap-4 lg:grid-cols-3">

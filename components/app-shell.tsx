@@ -50,7 +50,9 @@ export function AppShell({
 
   function handleReset() {
     const confirmed = window.confirm(
-      "Reset sample numbers and steps on this browser?",
+      user.role === "guide"
+        ? "Reset seeded plans and steps for your assigned members?"
+        : "Reset your spending plan, balances, and steps to the seeded sample?",
     );
     if (!confirmed) return;
     resetDemo();
@@ -104,8 +106,9 @@ export function AppShell({
         <main id="content" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-10 lg:py-10">
           {children}
           <p className="mt-12 max-w-3xl text-xs leading-5 text-muted">
-            Sample figures for the Wealth Creators demo, as of October 27, 2026.
-            Freedom Score and yield are planning tools, not investment advice.
+            Seeded sample plan for the Wealth Creators demo, as of October 27, 2026.
+            Edits are saved to the portal database. Freedom Score and yield are planning
+            tools, not investment advice.
           </p>
         </main>
       </div>

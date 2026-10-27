@@ -1,6 +1,5 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { findDemoAccount, passwordsMatch } from "@/lib/demo-accounts";
 import type { Role } from "@/lib/types";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -17,16 +16,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       authorize: async (credentials) => {
+        const { verifyLogin } = await import("@/lib/accounts");
         const email = String(credentials.email ?? "");
         const password = String(credentials.password ?? "");
-        const account = findDemoAccount(email);
-        if (!account || !passwordsMatch(password, account.password)) return null;
-        return {
-          id: account.id,
-          name: account.name,
-          email: account.email,
-          role: account.role,
-        };
+        return verifyLogin(email, password);
       },
     }),
   ],

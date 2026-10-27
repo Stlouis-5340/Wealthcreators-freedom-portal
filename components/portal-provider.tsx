@@ -4,123 +4,28 @@ import {
   createContext,
   useContext,
   useMemo,
-  useSyncExternalStore,
+  useRef,
+  useState,
   type ReactNode,
 } from "react";
-import { totalsFromLines } from "@/lib/metrics";
-import { buildRoster, type RosterRow } from "@/lib/roster";
+import { computeMetrics } from "@/lib/metrics";
 import {
-  alexAssets,
-  alexExpenses,
-  alexGoals,
-  alexLiabilities,
-  alexStreams,
-} from "@/lib/sample-data";
+  resetPlanAction,
+  toggleStepAction,
+  updateAssetAction,
+  updateExpenseAction,
+  updateLiabilityAction,
+  updateStreamAction,
+} from "@/lib/plan-actions";
+import { nonNegative, type PortalSnapshot, type PortalViewer, type StoredMemberPlan } from "@/lib/plans";
+import { memberRow, type RosterRow } from "@/lib/roster";
 import type {
   AssetLine,
   ExpenseLine,
   LiabilityLine,
   Metrics,
   PassiveStream,
-  Role,
 } from "@/lib/types";
-
-const STORAGE_KEY = "wc-freedom-portal-v1";
-
-interface PersistedState {
-  v: 1;
-  expenses: Record<string, number>;
-  streams: Record<string, number>;
-  assets: Record<string, number>;
-  liabilities: Record<string, number>;
-  steps: Record<string, boolean>;
-}
-
-const EMPTY: PersistedState = {
-  v: 1,
-  expenses: {},
-  streams: {},
-  assets: {},
-  liabilities: {},
-  steps: {},
-};
-
-export interface PortalViewer {
-  id: string;
-  name: string;
-  email: string;
-  role: Role;
-}
-
-const listeners = new Set<() => void>();
-let cachedRaw: string | null | undefined;
-let cachedParsed: PersistedState = EMPTY;
-
-function emit() {
-  listeners.forEach((listener) => listener());
-}
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-
-function readClient(): PersistedState {
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-  if (raw === cachedRaw) return cachedParsed;
-  cachedRaw = raw;
-  if (!raw) {
-    cachedParsed = EMPTY;
-    return EMPTY;
-  }
-  try {
-    const parsed = JSON.parse(raw) as PersistedState;
-    cachedParsed = parsed?.v === 1 ? parsed : EMPTY;
-  } catch {
-    cachedParsed = EMPTY;
-  }
-  return cachedParsed;
-}
-
-function write(state: PersistedState) {
-  const raw = JSON.stringify(state);
-  window.localStorage.setItem(STORAGE_KEY, raw);
-  cachedRaw = raw;
-  cachedParsed = state;
-  emit();
-}
-
-function clearStore() {
-  window.localStorage.removeItem(STORAGE_KEY);
-  cachedRaw = null;
-  cachedParsed = EMPTY;
-  emit();
-}
-
-function nonNegative(value: number): number {
-  if (!Number.isFinite(value)) return 0;
-  return Math.max(0, value);
-}
-
-function withAmounts<T extends { id: string }>(
-  lines: T[],
-  amounts: Record<string, number> | undefined,
-  key: keyof T,
-): T[] {
-  return lines.map((line) => {
-    const next = amounts?.[line.id];
-    if (typeof next !== "number" || !Number.isFinite(next)) return line;
-    return { ...line, [key]: nonNegative(next) };
-  });
-}
-
-function defaultStepDone(id: string): boolean {
-  for (const goal of alexGoals) {
-    const step = goal.steps.find((item) => item.id === id);
-    if (step) return step.done;
-  }
-  return false;
-}
 
 interface PortalContextValue {
   viewer: PortalViewer;
@@ -141,79 +46,116 @@ interface PortalContextValue {
 
 const PortalContext = createContext<PortalContextValue | null>(null);
 
+const emptyMetrics = computeMetrics({
+  monthlyPassive: 0,
+  monthlyExpenses: 0,
+  totalAssets: 0,
+  totalLiabilities: 0,
+});
+
+function withAmount<T extends { id: string }>(
+  lines: T[],
+  id: string,
+  key: keyof T,
+  amount: number,
+): T[] {
+  return lines.map((line) => (line.id === id ? { ...line, [key]: amount } : line));
+}
+
 export function PortalProvider({
-  viewer,
+  snapshot,
   children,
 }: {
-  viewer: PortalViewer;
+  snapshot: PortalSnapshot;
   children: ReactNode;
 }) {
-  const persisted = useSyncExternalStore(subscribe, readClient, () => EMPTY);
+  const [plan, setPlan] = useState<StoredMemberPlan | null>(snapshot.plan);
+  const [guideRoster, setGuideRoster] = useState<RosterRow[]>(snapshot.roster);
+  const [signature, setSignature] = useState(snapshot.signature);
+  const chains = useRef(new Map<string, Promise<void>>());
+
+  if (snapshot.signature !== signature) {
+    setSignature(snapshot.signature);
+    setPlan(snapshot.plan);
+    setGuideRoster(snapshot.roster);
+  }
 
   const value = useMemo<PortalContextValue>(() => {
-    const expenses = withAmounts(alexExpenses, persisted.expenses, "monthly");
-    const streams = withAmounts(alexStreams, persisted.streams, "monthly");
-    const assets = withAmounts(alexAssets, persisted.assets, "balance");
-    const liabilities = withAmounts(alexLiabilities, persisted.liabilities, "balance");
-    const metrics = totalsFromLines({ expenses, streams, assets, liabilities });
-    const roster = buildRoster({
-      expenses,
-      streams,
-      assets,
-      liabilities,
-      stepOverrides: persisted.steps,
-    });
+    const roster = plan ? [memberRow(plan)] : guideRoster;
+    const metrics = plan
+      ? computeMetrics({
+          monthlyPassive: plan.streams.reduce((sum, line) => sum + line.monthly, 0),
+          monthlyExpenses: plan.expenses.reduce((sum, line) => sum + line.monthly, 0),
+          totalAssets: plan.assets.reduce((sum, line) => sum + line.balance, 0),
+          totalLiabilities: plan.liabilities.reduce((sum, line) => sum + line.balance, 0),
+        })
+      : emptyMetrics;
+
+    function enqueue(key: string, run: () => Promise<void>) {
+      const previous = chains.current.get(key) ?? Promise.resolve();
+      const next = previous.then(run, run);
+      chains.current.set(key, next);
+    }
+
+    function updatePlan(next: StoredMemberPlan | null) {
+      setPlan(next);
+    }
 
     return {
-      viewer,
+      viewer: snapshot.viewer,
       metrics,
       roster,
-      expenses,
-      streams,
-      assets,
-      liabilities,
+      expenses: plan?.expenses ?? [],
+      streams: plan?.streams ?? [],
+      assets: plan?.assets ?? [],
+      liabilities: plan?.liabilities ?? [],
       updateExpense: (id, monthly) => {
-        const current = readClient();
-        write({
-          ...current,
-          expenses: { ...current.expenses, [id]: nonNegative(monthly) },
-        });
+        if (!plan) return;
+        const amount = nonNegative(monthly);
+        updatePlan({ ...plan, expenses: withAmount(plan.expenses, id, "monthly", amount) });
+        enqueue(`expense:${id}`, () => updateExpenseAction(id, amount));
       },
       updateStream: (id, monthly) => {
-        const current = readClient();
-        write({
-          ...current,
-          streams: { ...current.streams, [id]: nonNegative(monthly) },
-        });
+        if (!plan) return;
+        const amount = nonNegative(monthly);
+        updatePlan({ ...plan, streams: withAmount(plan.streams, id, "monthly", amount) });
+        enqueue(`stream:${id}`, () => updateStreamAction(id, amount));
       },
       updateAsset: (id, balance) => {
-        const current = readClient();
-        write({
-          ...current,
-          assets: { ...current.assets, [id]: nonNegative(balance) },
-        });
+        if (!plan) return;
+        const amount = nonNegative(balance);
+        updatePlan({ ...plan, assets: withAmount(plan.assets, id, "balance", amount) });
+        enqueue(`asset:${id}`, () => updateAssetAction(id, amount));
       },
       updateLiability: (id, balance) => {
-        const current = readClient();
-        write({
-          ...current,
-          liabilities: { ...current.liabilities, [id]: nonNegative(balance) },
-        });
+        if (!plan) return;
+        const amount = nonNegative(balance);
+        updatePlan({ ...plan, liabilities: withAmount(plan.liabilities, id, "balance", amount) });
+        enqueue(`liability:${id}`, () => updateLiabilityAction(id, amount));
       },
       toggleStep: (id) => {
-        const current = readClient();
-        const previous = Object.prototype.hasOwnProperty.call(current.steps, id)
-          ? current.steps[id]
-          : defaultStepDone(id);
-        write({
-          ...current,
-          steps: { ...current.steps, [id]: !previous },
+        if (!plan) return;
+        const step = plan.goals.flatMap((goal) => goal.steps).find((item) => item.id === id);
+        if (!step) return;
+        const done = !step.done;
+        updatePlan({
+          ...plan,
+          goals: plan.goals.map((goal) => ({
+            ...goal,
+            steps: goal.steps.map((item) => (item.id === id ? { ...item, done } : item)),
+          })),
+        });
+        enqueue(`step:${id}`, () => toggleStepAction(id, done));
+      },
+      resetDemo: () => {
+        const home = snapshot.viewer.role === "guide" ? "/guide" : "/";
+        void resetPlanAction().then(() => {
+          window.location.assign(home);
         });
       },
-      resetDemo: clearStore,
       memberById: (id) => roster.find((member) => member.id === id),
     };
-  }, [persisted, viewer]);
+  }, [guideRoster, plan, snapshot.viewer]);
 
   return <PortalContext.Provider value={value}>{children}</PortalContext.Provider>;
 }

@@ -11,7 +11,7 @@ import { GUIDE } from "@/lib/sample-data";
 
 export function DashboardView() {
   const { metrics, roster, toggleStep, viewer } = usePortal();
-  const alex = roster.find((member) => member.id === "alex");
+  const alex = roster.find((member) => member.id === viewer.id);
   const stage = stageFor(metrics.freedomScore);
   const needed =
     stage.next && metrics.freedomScore != null

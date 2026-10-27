@@ -1,4 +1,3 @@
-import { createHash, timingSafeEqual } from "node:crypto";
 import type { Role } from "@/lib/types";
 
 export interface DemoAccount {
@@ -11,8 +10,8 @@ export interface DemoAccount {
 }
 
 /**
- * Seeded portal accounts until a database exists.
- * Passwords are demo credentials, documented in the README, not production secrets.
+ * Demo logins seeded into the database.
+ * Passwords are preview credentials, documented in the README, not production secrets.
  * Jordan Lee is assigned to the full sample roster, including Alex Rivera.
  */
 export const demoAccounts: readonly DemoAccount[] = [
@@ -36,15 +35,4 @@ export const demoAccounts: readonly DemoAccount[] = [
 
 export function homeForRole(role: Role): "/" | "/guide" {
   return role === "guide" ? "/guide" : "/";
-}
-
-export function findDemoAccount(email: string): DemoAccount | undefined {
-  const normalized = email.trim().toLowerCase();
-  return demoAccounts.find((account) => account.email === normalized);
-}
-
-export function passwordsMatch(input: string, expected: string): boolean {
-  const left = createHash("sha256").update(input).digest();
-  const right = createHash("sha256").update(expected).digest();
-  return timingSafeEqual(left, right);
 }

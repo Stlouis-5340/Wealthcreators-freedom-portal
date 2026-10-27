@@ -2,7 +2,8 @@
 
 import { AuthError } from "next-auth";
 import { signIn, signOut } from "@/auth";
-import { findDemoAccount, homeForRole, passwordsMatch } from "@/lib/demo-accounts";
+import { verifyLogin } from "@/lib/accounts";
+import { homeForRole } from "@/lib/demo-accounts";
 
 export interface AuthFormState {
   error: string;
@@ -17,8 +18,8 @@ export async function loginAction(
 ): Promise<AuthFormState> {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
-  const account = findDemoAccount(email);
-  if (!account || !passwordsMatch(password, account.password)) {
+  const account = await verifyLogin(email, password);
+  if (!account) {
     return {
       error: "That email and password do not match a Freedom Portal account.",
       message: "",
@@ -52,8 +53,8 @@ export async function signupAction(
   void formData;
   return {
     error: "",
-    message:
-      "Wealth Creators issues member and guide accounts. Self-serve sign-up opens when those accounts live in the database. Use a demo login for this preview.",
+      message:
+        "Wealth Creators issues member and guide accounts. This form does not create a login. Use a demo login for this preview.",
   };
 }
 
