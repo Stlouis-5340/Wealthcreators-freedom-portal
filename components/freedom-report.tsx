@@ -199,7 +199,27 @@ export function FreedomReport({
       <section className="wc-card p-5 sm:p-6">
         <p className="wc-eyebrow">Education</p>
         <h3 className="mt-2 text-xl font-semibold tracking-tight">Learning progress</h3>
-        <p className="mt-3 text-sm leading-6 text-muted">{model.educationNote}</p>
+        {model.education.shared && model.education.total > 0 ? (
+          <p className="mt-3 text-sm leading-6 text-ink">
+            {model.education.completed} of {model.education.total} lessons finished
+            {model.education.inProgress > 0 ? ` · ${model.education.inProgress} in progress` : ""}
+          </p>
+        ) : null}
+        {model.education.completedTitles.length > 0 ? (
+          <ul className="mt-3 space-y-1">
+            {model.education.completedTitles.map((title) => (
+              <li key={title} className="text-sm leading-6 text-ink">
+                {title}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <p className="mt-3 text-sm leading-6 text-muted">{model.education.note}</p>
+        {model.audience === "member" && model.education.total > 0 ? (
+          <Link href="/learn" className="mt-4 inline-block text-sm font-medium text-gold hover:text-gold-bright">
+            Open Learn
+          </Link>
+        ) : null}
       </section>
 
       {shareActions ? (

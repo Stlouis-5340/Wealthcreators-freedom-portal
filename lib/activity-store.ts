@@ -97,6 +97,7 @@ export async function addCoachingTask(input: {
       title: input.title,
       dueDate: input.dueDate,
       status: "open",
+      source: "guide",
     },
   });
   return toTaskView(task);

@@ -22,6 +22,8 @@ const memberNav = [
   { href: "/assets", label: "Net Worth" },
   { href: "/spending", label: "Spending Plan" },
   { href: "/milestones", label: "Milestones" },
+  { href: "/learn", label: "Learn" },
+  { href: "/my-guide", label: "Guide" },
   { href: "/settings", label: "Guide access" },
   securityLink,
 ];
@@ -47,9 +49,12 @@ function navActive(pathname: string, href: string): boolean {
 export function AppShell({
   children,
   user,
+  guideUnread = 0,
 }: {
   children: ReactNode;
   user: { name: string; email: string; role: Role; mfaEnabled: boolean };
+  /** Unread notes on the member Guide page. Hidden while that page is open. */
+  guideUnread?: number;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -103,6 +108,7 @@ export function AppShell({
               href={item.href}
               label={item.label}
               active={navActive(pathname, item.href)}
+              badge={item.href === "/my-guide" && pathname !== "/my-guide" ? guideUnread : 0}
               onNavigate={closeMenu}
             />
           ))}
@@ -177,6 +183,7 @@ export function AppShell({
                 href={item.href}
                 label={item.label}
                 active={navActive(pathname, item.href)}
+                badge={item.href === "/my-guide" && pathname !== "/my-guide" ? guideUnread : 0}
                 onNavigate={closeMenu}
               />
             ))}
@@ -193,11 +200,13 @@ function NavLink({
   href,
   active,
   label,
+  badge = 0,
   onNavigate,
 }: {
   href: string;
   active: boolean;
   label: string;
+  badge?: number;
   onNavigate: () => void;
 }) {
   return (
@@ -205,13 +214,19 @@ function NavLink({
       href={href}
       aria-current={active ? "page" : undefined}
       onClick={onNavigate}
-      className={`block rounded-xl border-l-2 px-3 py-2.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
+      className={`flex items-center justify-between gap-3 rounded-xl border-l-2 px-3 py-2.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
         active
           ? "border-gold bg-surface-raised text-ink"
           : "border-transparent text-muted hover:bg-surface-raised hover:text-ink"
       }`}
     >
-      {label}
+      <span>{label}</span>
+      {badge > 0 ? (
+        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-gold px-1.5 text-[11px] font-semibold text-background">
+          {badge > 9 ? "9+" : badge}
+          <span className="sr-only"> unread notes</span>
+        </span>
+      ) : null}
     </Link>
   );
 }

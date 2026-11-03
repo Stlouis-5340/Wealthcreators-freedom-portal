@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { GuideCoachingReport } from "@/components/guide-coaching-report";
+import { GuideLearningPanel } from "@/components/guide-learning-panel";
 import { GuideSharedScenarios } from "@/components/guide-scenarios";
+import { GuideWorkspace } from "@/components/guide-workspace";
 import { MemberView } from "@/components/views/member-view";
 import { recordGuideSummaryView } from "@/lib/guide-view";
 import { isMemberId, memberIds } from "@/lib/sample-data";
@@ -31,6 +33,8 @@ export default async function Page({
     <MemberView memberId={memberId}>
       <GuideCoachingReport memberId={memberId} monthKey={month ?? null} />
       <GuideSharedScenarios memberId={memberId} />
+      <GuideLearningPanel memberId={memberId} />
+      <GuideWorkspace memberId={memberId} />
     </MemberView>
   );
 }

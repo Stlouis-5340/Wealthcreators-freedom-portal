@@ -33,7 +33,7 @@ export default async function Page() {
       <PageHeader
         eyebrow="Your plan"
         title="What your Guide can see"
-        lede="Your Wealth Guide coaches from the parts you leave on. The defaults cover score, totals, goals, and check-ins. Nothing here is a promise about returns."
+        lede="Your Wealth Guide coaches from the parts you leave on. The defaults cover score, totals, goals, check-ins, and learning progress. Nothing here is a promise about returns."
       />
       {guides.length === 0 ? (
         <p className="wc-card px-5 py-6 text-sm leading-6 text-muted">
