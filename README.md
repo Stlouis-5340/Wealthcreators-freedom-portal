@@ -6,13 +6,14 @@ Sign-in is Auth.js. Plans, goals, balances, and guide assignments are stored in 
 
 ## Auth and database
 
-Sign-in uses [Auth.js](https://authjs.dev) (`next-auth` v5) with email and password. The session is a JWT that carries Member or Wealth Guide. Accounts, password hashes, and plan data live in the database.
+Sign-in uses [Auth.js](https://authjs.dev) (`next-auth` v5) with email and password. The session is a JWT that carries Member, Wealth Guide, or Admin. Accounts, password hashes, and plan data live in the database. Guides and admins can add an authenticator app. It stays off in the demo seed so the passwords below sign in immediately.
 
 The database is [Prisma](https://www.prisma.io/). Local development stays on SQLite (`prisma/schema.prisma` and `prisma/migrations`). Production on Vercel uses Postgres (`prisma/postgres/schema.prisma` and `prisma/postgres/migrations`). The models are the same strings, numbers, booleans, and datetimes. Prisma cannot switch the provider inside one schema file, so the build checks that those two model blocks still match. Do not run the SQLite migrations against Postgres.
 
 - Route protection sits in `proxy.ts` (the Next.js 16 replacement for `middleware.ts`).
-- Demo logins are Member Alex Rivera and Wealth Guide Jordan Lee. Their password hashes are created by the seed. Other roster members are users with plans, assigned to Jordan, and do not have published passwords.
-- A member writes only their own spending lines, balances, and steps. A guide reads assigned members and does not see institutions, account numbers, or transactions, including accounts connected through Plaid.
+- Demo logins are Member Alex Rivera, Wealth Guide Jordan Lee, and Admin Morgan Hale. Their password hashes are created by the seed. Other roster members are users with plans, assigned to Jordan, and do not have published passwords.
+- A member writes only their own spending lines, balances, and steps. A guide reads assigned members and does not see institutions, account numbers, or transactions, including accounts connected through Plaid. The member chooses whether the guide sees score, totals, goals, and check-ins. Category spending stays off.
+- An admin manages people, roles, assignments, and the audit log. An admin does not open member plans.
 
 `AUTH_SECRET` is the session secret. `DATABASE_URL` points at SQLite locally and at Postgres in production. Neither belongs in git. Demo passwords below are preview logins, not production credentials.
 
@@ -50,13 +51,16 @@ npm run lint
 | --- | --- | --- | --- | --- |
 | Member | Alex Rivera | alex@wealthcreators.test | Freedom-Alex-2026 | Dashboard |
 | Wealth Guide | Jordan Lee | jordan@wealthcreators.test | Freedom-Jordan-2026 | Command center |
+| Admin | Morgan Hale | admin@wealthcreators.test | Freedom-Admin-2026 | People |
 
 The accounts are created by `npm run db:seed` from `lib/demo-accounts.ts` and `lib/sample-data.ts`. Sign-up on `/signup` is branded and does not create a user.
 
 After sign-in:
 
 - Alex sees only the member shell: dashboard, monthly Freedom Report, weekly check-in, Freedom Gap, goals, net worth, spending plan, milestones. The figures are Alex's plan in the database. Opening `/guide` returns to the dashboard. The home card opens the current month. Alex also has a saved prior month, so the report can show what moved.
-- Jordan sees the command center and each assigned member's progress. The assignment is the full sample roster, including Alex. Opening the member editor returns to the command center. Member detail includes that month's coaching report. The guide screens still omit institutions, account numbers, and transactions. Check-in answers are visible because the member wrote them for coaching.
+- Jordan sees the command center and each assigned member's progress. The assignment is the full sample roster, including Alex. Opening the member editor returns to the command center. Member detail includes that month's coaching report. The guide screens still omit institutions, account numbers, category spending, and transactions. Score, totals, goals, and check-ins are on by default. Alex can turn those off under Guide access.
+- Morgan sees People and the audit log. That screen can change a role, assign a Guide, or pause sign-in. It does not show balances. Authenticator status is on or off, never the secret.
+- Guides and admins see a banner until they enroll an authenticator at Security. The demo passwords work before that. After enrollment, the next sign-in asks for a 6-digit code.
 - Sign out clears the session and returns to `/login`.
 
 Edits to spending categories, balances, passive streams, and this-year steps are written to the database and stay after a refresh. **Reset demo data** restores the seeded plan and keeps Plaid connections. A member resets their own plan. Jordan resets every assigned member.

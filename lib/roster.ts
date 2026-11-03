@@ -1,3 +1,4 @@
+import { fullGuideAccess, type GuideAccess } from "./access";
 import { daysSince } from "./format";
 import { assessPlanIntegrity, type IntegritySummary } from "./integrity";
 import { freedomProgress, resolveGoals, stepTotals, totalsFromLines } from "./metrics";
@@ -37,6 +38,8 @@ export interface RosterRow {
   checkIns: WeeklyCheckInView[];
   notes: CoachingNoteView[];
   tasks: CoachingTaskView[];
+  /** What the viewer is allowed to see. Members always have the full set. */
+  access: GuideAccess;
 }
 
 export function flagsFor(input: {
@@ -104,6 +107,60 @@ function rowFrom(input: {
     checkIns: [],
     notes: [],
     tasks: [],
+    access: { ...fullGuideAccess },
+  };
+}
+
+const hiddenQuality: FreedomQuality = {
+  score: null,
+  confidence: 0,
+  limitedData: true,
+  factors: [],
+  chips: [],
+};
+
+/** Remove figures a Guide is not allowed to see before the roster is sent to the browser. */
+export function applyGuideAccess(row: RosterRow, access: GuideAccess): RosterRow {
+  const metrics = { ...row.metrics };
+  if (!access.score) {
+    metrics.freedomScore = Number.NaN;
+    metrics.monthlyFreedomGap = Number.NaN;
+  }
+  if (!access.totals) {
+    metrics.monthlyPassive = Number.NaN;
+    metrics.monthlyExpenses = Number.NaN;
+    metrics.annualPassive = Number.NaN;
+    metrics.totalAssets = Number.NaN;
+    metrics.totalLiabilities = Number.NaN;
+    metrics.netWorth = Number.NaN;
+    metrics.yieldOnAssets = Number.NaN;
+    metrics.yieldOnNetWorth = Number.NaN;
+    metrics.monthlySurplus = Number.NaN;
+  }
+  const flags: MemberFlags = {
+    needsAttention: access.score ? row.flags.needsAttention : false,
+    nearLine: access.score ? row.flags.nearLine : false,
+    freedomPlus: access.score ? row.flags.freedomPlus : false,
+    goalsBehind: access.goals ? row.flags.goalsBehind : false,
+  };
+  const statuses = statusLabels(flags).filter((status) => access.score || status.key === "behind");
+  return {
+    ...row,
+    access: { ...access, tasks: access.tasks },
+    metrics,
+    flags,
+    statuses: access.score || (access.goals && flags.goalsBehind) ? statuses : [],
+    quality: access.score ? row.quality : hiddenQuality,
+    goals: access.goals ? row.goals : [],
+    sixYearProgress: access.goals ? row.sixYearProgress : Number.NaN,
+    stepsDone: access.goals ? row.stepsDone : 0,
+    stepsTotal: access.goals ? row.stepsTotal : 0,
+    checkIns: access.checkIns ? row.checkIns : [],
+    tasks: access.tasks ? row.tasks : [],
+    coachingNote:
+      access.score && access.goals
+        ? row.coachingNote
+        : "The short coaching line is hidden because it summarizes a score or goals this member has not shared.",
   };
 }
 

@@ -105,11 +105,23 @@ function Queue({
                   </div>
                   <p className="mt-2 max-w-3xl text-sm leading-6 text-ink">{item.reason}</p>
                   <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <Metric label="Freedom Score" value={formatPercentOrDash(member.metrics.freedomScore, 1)} />
-                    <Metric label="Freedom Gap" value={formatMoney(member.metrics.monthlyFreedomGap)} />
+                    <Metric
+                      label="Freedom Score"
+                      value={member.access.score ? formatPercentOrDash(member.metrics.freedomScore, 1) : "Not shared"}
+                    />
+                    <Metric
+                      label="Freedom Gap"
+                      value={member.access.score ? formatMoney(member.metrics.monthlyFreedomGap) : "Not shared"}
+                    />
                     <Metric
                       label="Quality"
-                      value={member.quality.score == null ? "—" : `${member.quality.score}/100`}
+                      value={
+                        member.access.score
+                          ? member.quality.score == null
+                            ? "—"
+                            : `${member.quality.score}/100`
+                          : "Not shared"
+                      }
                     />
                   </dl>
                 </Link>

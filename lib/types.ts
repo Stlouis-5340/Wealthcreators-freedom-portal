@@ -1,4 +1,4 @@
-export type Role = "member" | "guide";
+export type Role = "member" | "guide" | "admin";
 
 export type GoalKind = "wealth" | "personal";
 

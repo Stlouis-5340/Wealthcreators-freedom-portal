@@ -16,12 +16,14 @@ export function GuideMemberTools({ memberId }: { memberId: string }) {
   const { memberById } = usePortal();
   const member = memberById(memberId);
   if (!member) return null;
-  const checkIns = sortCheckIns(member.checkIns);
+  const access = member.access;
+  const checkIns = access.checkIns ? sortCheckIns(member.checkIns) : [];
   const latest = checkIns[0];
   const today = chicagoDateISO();
 
   return (
     <div className="space-y-8">
+      {access.checkIns ? (
       <section className="space-y-4">
         <div>
           <h2 className="text-sm font-medium uppercase tracking-[0.16em] text-gold-muted">
@@ -67,9 +69,19 @@ export function GuideMemberTools({ memberId }: { memberId: string }) {
           </ul>
         ) : null}
       </section>
+      ) : (
+        <p className="wc-card px-5 py-6 text-sm leading-6 text-muted">
+          Weekly check-ins are not shared. A check-in includes the words the member wrote and the
+          score snapshot from that week.
+        </p>
+      )}
 
       <Notes memberId={member.id} notes={member.notes} />
-      <Tasks memberId={member.id} tasks={member.tasks} today={today} />
+      {access.tasks ? (
+        <Tasks memberId={member.id} tasks={member.tasks} today={today} />
+      ) : (
+        <p className="wc-card px-5 py-6 text-sm leading-6 text-muted">Coaching tasks are not shared.</p>
+      )}
     </div>
   );
 }

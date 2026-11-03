@@ -31,8 +31,24 @@ export const demoAccounts: readonly DemoAccount[] = [
     role: "guide",
     title: "Wealth Guide",
   },
+  {
+    id: "admin",
+    name: "Morgan Hale",
+    email: "admin@wealthcreators.test",
+    password: "Freedom-Admin-2026",
+    role: "admin",
+    title: "Admin",
+  },
 ];
 
-export function homeForRole(role: Role): "/" | "/guide" {
-  return role === "guide" ? "/guide" : "/";
+export function homeForRole(role: Role): "/" | "/guide" | "/admin" {
+  if (role === "guide") return "/guide";
+  if (role === "admin") return "/admin";
+  return "/";
+}
+
+export function roleTitle(role: Role): string {
+  if (role === "admin") return "Admin";
+  if (role === "guide") return "Wealth Guide";
+  return "Member";
 }

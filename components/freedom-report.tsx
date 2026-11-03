@@ -15,6 +15,8 @@ export function FreedomReport({
 }) {
   const score = model.numbers.freedomScore;
   const coaching = model.coaching;
+  const access = model.access;
+  const shareActions = access.score && access.totals && access.goals;
   return (
     <article id="freedom-report" className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
@@ -41,6 +43,7 @@ export function FreedomReport({
         <span className="text-muted">{model.baseline.detail}</span>
       </p>
 
+      {access.score ? (
       <section className="wc-card p-5 sm:p-6">
         <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
           <FreedomRing score={score} />
@@ -57,49 +60,68 @@ export function FreedomReport({
           </div>
         </div>
       </section>
+      ) : (
+        <PrivateNote label="Freedom Score" />
+      )}
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <MetricCard
-          label="Net worth"
-          value={moneyOrDash(model.numbers.netWorth)}
-          hint="Assets minus liabilities"
-          delta={model.deltas.netWorth}
-        />
-        <MetricCard
-          label="Passive income"
-          value={model.numbers.passive == null ? "—" : `${formatMoney(model.numbers.passive)} / month`}
-          hint="Qualifying streams only"
-          delta={model.deltas.passive}
-        />
-        <MetricCard
-          label="Spending plan"
-          value={model.numbers.expenses == null ? "—" : `${formatMoney(model.numbers.expenses)} / month`}
-          hint="The Freedom Score denominator"
-          delta={model.deltas.expenses}
-        />
-        <MetricCard
-          label="Freedom Gap"
-          value={model.numbers.gap == null ? "—" : `${formatMoney(model.numbers.gap)} / month`}
-          hint="Plan minus qualifying passive income, never below zero"
-          delta={model.deltas.gap}
-        />
-        <MetricCard
-          label="Yield on assets"
-          value={formatPercentOrDash(model.numbers.yieldOnAssets, 2)}
-          hint="Annual passive income divided by assets. Not total return."
-          delta={model.deltas.yieldOnAssets}
-          primary
-        />
-        <MetricCard
-          label="Freedom Quality"
-          value={model.numbers.quality == null ? "—" : `${Math.round(model.numbers.quality)} / 100`}
-          hint="How durable the coverage looks. Separate from Freedom Score."
-          delta={model.deltas.quality}
-        />
+        {access.totals ? (
+          <MetricCard
+            label="Net worth"
+            value={moneyOrDash(model.numbers.netWorth)}
+            hint="Assets minus liabilities"
+            delta={model.deltas.netWorth}
+          />
+        ) : null}
+        {access.totals ? (
+          <MetricCard
+            label="Passive income"
+            value={model.numbers.passive == null ? "—" : `${formatMoney(model.numbers.passive)} / month`}
+            hint="Qualifying streams only"
+            delta={model.deltas.passive}
+          />
+        ) : null}
+        {access.totals ? (
+          <MetricCard
+            label="Spending plan"
+            value={model.numbers.expenses == null ? "—" : `${formatMoney(model.numbers.expenses)} / month`}
+            hint="The total of the spending plan, not each category"
+            delta={model.deltas.expenses}
+          />
+        ) : null}
+        {access.score ? (
+          <MetricCard
+            label="Freedom Gap"
+            value={model.numbers.gap == null ? "—" : `${formatMoney(model.numbers.gap)} / month`}
+            hint="Plan minus qualifying passive income, never below zero"
+            delta={model.deltas.gap}
+          />
+        ) : null}
+        {access.totals ? (
+          <MetricCard
+            label="Yield on assets"
+            value={formatPercentOrDash(model.numbers.yieldOnAssets, 2)}
+            hint="Annual passive income divided by assets. Not total return."
+            delta={model.deltas.yieldOnAssets}
+            primary
+          />
+        ) : null}
+        {access.score ? (
+          <MetricCard
+            label="Freedom Quality"
+            value={model.numbers.quality == null ? "—" : `${Math.round(model.numbers.quality)} / 100`}
+            hint="How durable the coverage looks. Separate from Freedom Score."
+            delta={model.deltas.quality}
+          />
+        ) : null}
       </section>
+      {!access.totals ? <PrivateNote label="Net worth, passive income, and the spending-plan total" /> : null}
 
-      {coaching ? <CoachingHighlights coaching={coaching} monthName={model.monthName} /> : null}
+      {coaching ? (
+        <CoachingHighlights coaching={coaching} monthName={model.monthName} access={access} />
+      ) : null}
 
+      {access.goals ? (
       <section className="wc-card p-5 sm:p-6">
         <p className="wc-eyebrow">Goals</p>
         <h3 className="mt-2 text-xl font-semibold tracking-tight">Completion this month</h3>
@@ -134,7 +156,11 @@ export function FreedomReport({
           </ul>
         )}
       </section>
+      ) : (
+        <PrivateNote label="Six-year goals" />
+      )}
 
+      {access.score || access.goals ? (
       <section className="wc-card p-5 sm:p-6">
         <p className="wc-eyebrow">Milestones</p>
         <h3 className="mt-2 text-xl font-semibold tracking-tight">Achieved this month</h3>
@@ -166,6 +192,9 @@ export function FreedomReport({
           <p className="mt-3 text-sm leading-6 text-muted">{model.milestones.note}</p>
         )}
       </section>
+      ) : (
+        <PrivateNote label="Score and goal milestones" />
+      )}
 
       <section className="wc-card p-5 sm:p-6">
         <p className="wc-eyebrow">Education</p>
@@ -173,6 +202,7 @@ export function FreedomReport({
         <p className="mt-3 text-sm leading-6 text-muted">{model.educationNote}</p>
       </section>
 
+      {shareActions ? (
       <section className="space-y-4">
         <div>
           <p className="wc-eyebrow">Next actions</p>
@@ -209,6 +239,9 @@ export function FreedomReport({
           <p className="text-sm text-muted">The saved actions could not be read.</p>
         ) : null}
       </section>
+      ) : (
+        <PrivateNote label="This month's recommended actions" />
+      )}
 
       {model.audience === "guide" ? (
         <p className="text-xs leading-5 text-muted">
@@ -292,12 +325,23 @@ function MonthNav({ months, current }: { months: MonthLink[]; current: string })
   );
 }
 
+function PrivateNote({ label }: { label: string }) {
+  return (
+    <p className="wc-card px-5 py-6 text-sm leading-6 text-muted">
+      {label} is turned off for your Guide view. The member chooses this on Guide access. Category
+      spending and transactions stay private either way.
+    </p>
+  );
+}
+
 function CoachingHighlights({
   coaching,
   monthName,
+  access,
 }: {
   coaching: NonNullable<FreedomReportModel["coaching"]>;
   monthName: string;
+  access: FreedomReportModel["access"];
 }) {
   const latest = coaching.latest;
   return (
@@ -307,14 +351,16 @@ function CoachingHighlights({
       <dl className="mt-4 grid gap-3 sm:grid-cols-2">
         <div className="rounded-xl bg-surface-raised px-3 py-3">
           <dt className="text-[11px] uppercase tracking-[0.12em] text-muted">Open tasks</dt>
-          <dd className="mt-1 text-2xl font-semibold text-ink">{coaching.openTaskCount}</dd>
+          <dd className="mt-1 text-2xl font-semibold text-ink">
+            {access.tasks ? coaching.openTaskCount : "Not shared"}
+          </dd>
         </div>
         <div className="rounded-xl bg-surface-raised px-3 py-3">
           <dt className="text-[11px] uppercase tracking-[0.12em] text-muted">Coaching notes</dt>
           <dd className="mt-1 text-2xl font-semibold text-ink">{coaching.noteCount}</dd>
         </div>
       </dl>
-      {latest ? (
+      {access.checkIns && latest ? (
         <div className="mt-4">
           <p className="text-sm text-muted">
             Latest check-in · week of {latest.weekLabel}
@@ -330,7 +376,9 @@ function CoachingHighlights({
           </dl>
         </div>
       ) : (
-        <p className="mt-4 text-sm leading-6 text-muted">No check-in has been saved yet.</p>
+        <p className="mt-4 text-sm leading-6 text-muted">
+          {access.checkIns ? "No check-in has been saved yet." : "Check-ins are not shared with you."}
+        </p>
       )}
     </section>
   );

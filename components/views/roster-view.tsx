@@ -123,16 +123,36 @@ export function RosterView() {
                   <StatusPills statuses={row.statuses} />
                 </div>
                 <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <Metric label="Freedom Score" value={formatPercentOrDash(row.metrics.freedomScore, 1)} />
-                  <Metric label="Freedom Gap" value={formatMoney(row.metrics.monthlyFreedomGap)} />
+                  <Metric
+                    label="Freedom Score"
+                    value={row.access.score ? formatPercentOrDash(row.metrics.freedomScore, 1) : "Not shared"}
+                  />
+                  <Metric
+                    label="Freedom Gap"
+                    value={row.access.score ? formatMoney(row.metrics.monthlyFreedomGap) : "Not shared"}
+                  />
                   <Metric
                     label="Quality"
-                    value={row.quality.score == null ? "—" : `${row.quality.score}/100`}
+                    value={
+                      row.access.score ? (row.quality.score == null ? "—" : `${row.quality.score}/100`) : "Not shared"
+                    }
                   />
-                  <Metric label="Yield on assets" value={formatPercentOrDash(row.metrics.yieldOnAssets, 2)} />
-                  <Metric label="6-year goal" value={`${Math.round(row.sixYearProgress)}%`} />
-                  <Metric label="This year" value={`${row.stepsDone}/${row.stepsTotal}`} />
-                  <Metric label="Net worth" value={formatMoney(row.metrics.netWorth)} />
+                  <Metric
+                    label="Yield on assets"
+                    value={row.access.totals ? formatPercentOrDash(row.metrics.yieldOnAssets, 2) : "Not shared"}
+                  />
+                  <Metric
+                    label="6-year goal"
+                    value={row.access.goals && Number.isFinite(row.sixYearProgress) ? `${Math.round(row.sixYearProgress)}%` : "Not shared"}
+                  />
+                  <Metric
+                    label="This year"
+                    value={row.access.goals ? `${row.stepsDone}/${row.stepsTotal}` : "Not shared"}
+                  />
+                  <Metric
+                    label="Net worth"
+                    value={row.access.totals && Number.isFinite(row.metrics.netWorth) ? formatMoney(row.metrics.netWorth) : "Not shared"}
+                  />
                   <Metric label="Last active" value={relativeDay(row.lastActive)} />
                 </dl>
               </Link>

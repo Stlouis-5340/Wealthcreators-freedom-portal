@@ -8,6 +8,18 @@ function isGuidePath(pathname: string): boolean {
   return pathname === "/guide" || pathname.startsWith("/guide/");
 }
 
+function isAdminPath(pathname: string): boolean {
+  return pathname === "/admin" || pathname.startsWith("/admin/");
+}
+
+function isSecurityPath(pathname: string): boolean {
+  return pathname === "/security" || pathname.startsWith("/security/");
+}
+
+function isSettingsPath(pathname: string): boolean {
+  return pathname === "/settings" || pathname.startsWith("/settings/");
+}
+
 function isMemberPath(pathname: string): boolean {
   return (
     pathname === "/" ||
@@ -57,14 +69,21 @@ export const proxy = auth((req) => {
     return NextResponse.redirect(destination);
   }
 
-  if (role === "member" && isGuidePath(pathname)) {
+  if (role === "admin" && !isAdminPath(pathname) && !isSecurityPath(pathname)) {
+    const destination = req.nextUrl.clone();
+    destination.pathname = "/admin";
+    destination.search = "";
+    return NextResponse.redirect(destination);
+  }
+
+  if (role === "member" && (isGuidePath(pathname) || isAdminPath(pathname))) {
     const destination = req.nextUrl.clone();
     destination.pathname = "/";
     destination.search = "";
     return NextResponse.redirect(destination);
   }
 
-  if (role === "guide" && isMemberPath(pathname)) {
+  if (role === "guide" && (isMemberPath(pathname) || isAdminPath(pathname) || isSettingsPath(pathname))) {
     const destination = req.nextUrl.clone();
     destination.pathname = "/guide";
     destination.search = "";

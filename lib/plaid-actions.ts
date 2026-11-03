@@ -1,14 +1,12 @@
 "use server";
 
-import { auth, isPortalRole } from "@/auth";
 import { createLinkToken, disconnectItem, exchangeAndSync, refreshMemberBalances } from "@/lib/plaid";
 import { isPlaidConfigured, type LinkTokenResult, type PlaidActionResult } from "@/lib/plaid-config";
+import { requireMember } from "@/lib/permissions";
 
 async function memberId(): Promise<string | null> {
-  const session = await auth();
-  const user = session?.user;
-  if (!user || !isPortalRole(user.role) || user.role !== "member" || !user.id) return null;
-  return user.id;
+  const user = await requireMember();
+  return user?.id ?? null;
 }
 
 export async function createLinkTokenAction(): Promise<LinkTokenResult> {

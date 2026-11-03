@@ -1,3 +1,5 @@
+import { fullGuideAccess, serializeGuideAccess } from "../lib/access";
+import { demoAccounts } from "../lib/demo-accounts";
 import { prisma } from "../lib/db";
 import { hashPassword } from "../lib/passwords";
 import { replaceMemberPlan } from "../lib/plan-store";
@@ -5,6 +7,14 @@ import { encodeReportJson } from "../lib/report";
 import { demoActivity } from "../lib/sample-activity";
 import { alexPriorReport } from "../lib/sample-reports";
 import { assignmentSeeds, guideSeed, memberSeeds } from "../lib/sample-plans";
+
+const clearedSecurity = {
+  isActive: true,
+  mfaEnabled: false,
+  mfaSecretEnc: "",
+  mfaPendingSecretEnc: "",
+  mfaRecoveryHashes: "[]",
+};
 
 async function main() {
   const guide = guideSeed();
@@ -19,12 +29,14 @@ async function main() {
       lastActive: "2026-10-27",
       coachingNote: "",
       rosterSort: 0,
+      ...clearedSecurity,
     },
     update: {
       email: guide.email,
       passwordHash: hashPassword(guide.password),
       name: guide.name,
       role: guide.role,
+      ...clearedSecurity,
     },
   });
 
@@ -40,6 +52,7 @@ async function main() {
         lastActive: member.lastActive,
         coachingNote: member.coachingNote,
         rosterSort: member.rosterSort,
+        ...clearedSecurity,
       },
       update: {
         email: member.email,
@@ -48,6 +61,7 @@ async function main() {
         lastActive: member.lastActive,
         coachingNote: member.coachingNote,
         rosterSort: member.rosterSort,
+        ...clearedSecurity,
         ...(member.id === "alex" ? { passwordHash: hashPassword(member.password) } : {}),
       },
     });
@@ -57,6 +71,39 @@ async function main() {
   const assignments = assignmentSeeds();
   await prisma.guideAssignment.deleteMany({ where: { guideId: guide.id } });
   await prisma.guideAssignment.createMany({ data: assignments });
+  await prisma.guideAccessGrant.deleteMany({ where: { guideId: guide.id } });
+  await prisma.guideAccessGrant.createMany({
+    data: assignments.map((assignment) => ({
+      guideId: assignment.guideId,
+      memberId: assignment.memberId,
+      scopes: serializeGuideAccess(fullGuideAccess),
+    })),
+  });
+
+  const admin = demoAccounts.find((account) => account.role === "admin");
+  if (!admin) throw new Error("Admin demo account is missing.");
+  await prisma.user.upsert({
+    where: { id: admin.id },
+    create: {
+      id: admin.id,
+      email: admin.email,
+      passwordHash: hashPassword(admin.password),
+      name: admin.name,
+      role: admin.role,
+      lastActive: "2026-11-03",
+      coachingNote: "",
+      rosterSort: 0,
+      ...clearedSecurity,
+    },
+    update: {
+      email: admin.email,
+      passwordHash: hashPassword(admin.password),
+      name: admin.name,
+      role: admin.role,
+      ...clearedSecurity,
+    },
+  });
+  await prisma.auditLog.deleteMany();
 
   const memberIds = memberSeeds().map((member) => member.id);
   const activity = demoActivity();

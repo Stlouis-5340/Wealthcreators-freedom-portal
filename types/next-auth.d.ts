@@ -10,6 +10,7 @@ declare module "@auth/core/types" {
     user: {
       id: string;
       role: Role;
+      mfaEnabled?: boolean;
     } & DefaultSession["user"];
   }
 }
@@ -18,5 +19,6 @@ declare module "@auth/core/jwt" {
   interface JWT {
     id?: string;
     role?: Role;
+    mfaEnabled?: boolean;
   }
 }

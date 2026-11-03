@@ -26,6 +26,7 @@ export interface PortalViewer {
   name: string;
   email: string;
   role: Role;
+  mfaEnabled: boolean;
 }
 
 export interface ConnectedAccount {

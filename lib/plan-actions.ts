@@ -1,6 +1,5 @@
 "use server";
 
-import { auth, isPortalRole } from "@/auth";
 import {
   loadPortalSnapshot,
   resetSeededPlans,
@@ -9,13 +8,11 @@ import {
   updateMemberAmount,
 } from "@/lib/plan-store";
 import { nonNegative } from "@/lib/plans";
+import { requireActor, requireMember } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 
 async function memberSession() {
-  const session = await auth();
-  const user = session?.user;
-  if (!user || !isPortalRole(user.role) || user.role !== "member" || !user.id) return null;
-  return user;
+  return requireMember();
 }
 
 export async function updateExpenseAction(lineId: string, monthly: number) {
@@ -78,12 +75,11 @@ export async function toggleStepAction(stepId: string, done: boolean) {
 }
 
 export async function resetPlanAction() {
-  const session = await auth();
-  const user = session?.user;
-  if (!user || !isPortalRole(user.role) || !user.id) return null;
+  const user = await requireActor();
+  if (!user) return null;
   if (user.role === "member") {
     await resetSeededPlans([user.id]);
-  } else {
+  } else if (user.role === "guide") {
     const assignments = await prisma.guideAssignment.findMany({
       where: { guideId: user.id },
       select: { memberId: true },

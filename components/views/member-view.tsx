@@ -32,9 +32,11 @@ export function MemberView({
     );
   }
 
-  const wealth = member.goals.filter((goal) => goal.kind === "wealth");
-  const personal = member.goals.filter((goal) => goal.kind === "personal");
-  const covered = member.metrics.monthlySurplus >= 0;
+  const access = member.access;
+  const wealth = access.goals ? member.goals.filter((goal) => goal.kind === "wealth") : [];
+  const personal = access.goals ? member.goals.filter((goal) => goal.kind === "personal") : [];
+  const covered = access.totals && member.metrics.monthlySurplus >= 0;
+  const money = (on: boolean, value: number) => (on && Number.isFinite(value) ? formatMoney(value) : "Not shared");
 
   return (
     <div className="space-y-8">
@@ -55,9 +57,9 @@ export function MemberView({
       </div>
 
       <p className="rounded-2xl border border-gold-muted/40 bg-surface px-4 py-3 text-sm leading-6 text-muted">
-        Guides see the plan, the progress, the Freedom Gap, Freedom Quality, weekly
-        check-ins, and the monthly coaching report. This view has no bank logins,
-        account numbers, institution names, or transactions.
+        You see the parts this member has shared: score, totals, goals, and check-ins.
+        Category spending and transactions stay off. This view has no bank names, account
+        numbers, or connection tokens.
       </p>
 
       <p className="max-w-3xl text-sm leading-6 text-ink">{member.coachingNote}</p>
@@ -65,38 +67,50 @@ export function MemberView({
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
           label="Freedom Score"
-          value={formatPercentOrDash(member.metrics.freedomScore, 1)}
-          status={member.integrity.freedomScore}
+          value={access.score ? formatPercentOrDash(member.metrics.freedomScore, 1) : "Not shared"}
+          status={access.score ? member.integrity.freedomScore : undefined}
         />
         <Stat
           label="Freedom Gap"
-          value={formatMoney(member.metrics.monthlyFreedomGap)}
-          status={member.integrity.freedomGap}
-          detail="per month"
+          value={access.score ? formatMoney(member.metrics.monthlyFreedomGap) : "Not shared"}
+          status={access.score ? member.integrity.freedomGap : undefined}
+          detail={access.score ? "per month" : undefined}
         />
         <Stat
           label="Freedom Quality"
-          value={member.quality.score == null ? "—" : `${member.quality.score} / 100`}
-          detail={`${Math.round(member.quality.confidence * 100)}% of the model had data`}
+          value={
+            access.score
+              ? member.quality.score == null
+                ? "—"
+                : `${member.quality.score} / 100`
+              : "Not shared"
+          }
+          detail={
+            access.score ? `${Math.round(member.quality.confidence * 100)}% of the model had data` : undefined
+          }
         />
         <Stat
           label="Yield on assets"
-          value={formatPercentOrDash(member.metrics.yieldOnAssets, 2)}
-          status={member.integrity.yieldOnAssets}
+          value={access.totals ? formatPercentOrDash(member.metrics.yieldOnAssets, 2) : "Not shared"}
+          status={access.totals ? member.integrity.yieldOnAssets : undefined}
           primary
         />
         <Stat
           label="Net worth"
-          value={formatMoney(member.metrics.netWorth)}
-          status={member.integrity.netWorth}
+          value={money(access.totals, member.metrics.netWorth)}
+          status={access.totals ? member.integrity.netWorth : undefined}
         />
-        <Stat label="6-year Freedom goal" value={`${Math.round(member.sixYearProgress)}%`} />
+        <Stat
+          label="6-year Freedom goal"
+          value={access.goals && Number.isFinite(member.sixYearProgress) ? `${Math.round(member.sixYearProgress)}%` : "Not shared"}
+        />
       </section>
 
       {children}
 
       <GuideMemberTools memberId={member.id} />
 
+      {access.totals ? (
       <section className="wc-card p-5 sm:p-6">
         <p className="wc-eyebrow">Passive income and the plan</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
@@ -123,12 +137,19 @@ export function MemberView({
         </div>
         <p className="mt-4 text-xs leading-5 text-muted">
           Totals only. Yield on assets is {formatMoney(member.metrics.annualPassive)} a year divided
-          by {formatMoney(member.metrics.totalAssets)} of assets. Freedom Gap is{" "}
-          {formatMoney(member.metrics.monthlyFreedomGap)} a month. Labels say whether those totals
-          are verified, estimated, stale, or missing. This view still has no bank names or account numbers.
+          by {formatMoney(member.metrics.totalAssets)} of assets.
+          {access.score ? ` Freedom Gap is ${formatMoney(member.metrics.monthlyFreedomGap)} a month.` : ""}{" "}
+          Labels say whether those totals are verified, estimated, stale, or missing. This view still
+          has no bank names, category lines, or account numbers.
         </p>
       </section>
+      ) : (
+        <p className="wc-card px-5 py-6 text-sm leading-6 text-muted">
+          Net worth, passive income, and the spending-plan total are not shared.
+        </p>
+      )}
 
+      {access.score ? (
       <section className="wc-card p-5 sm:p-6">
         <p className="wc-eyebrow">Freedom Quality</p>
         <h2 className="mt-2 text-xl font-semibold tracking-tight">How durable the coverage looks</h2>
@@ -140,7 +161,9 @@ export function MemberView({
           <QualityPanel quality={member.quality} />
         </div>
       </section>
+      ) : null}
 
+      {access.goals ? (
       <section className="space-y-4">
         <h2 className="text-sm font-medium uppercase tracking-[0.16em] text-gold-muted">
           Six-year goals
@@ -149,6 +172,9 @@ export function MemberView({
           <GoalCard key={goal.id} goal={goal} readOnly />
         ))}
       </section>
+      ) : (
+        <p className="wc-card px-5 py-6 text-sm leading-6 text-muted">Six-year goals are not shared.</p>
+      )}
     </div>
   );
 }
