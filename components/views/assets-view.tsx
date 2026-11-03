@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { EfficiencyAside } from "@/components/efficiency-aside";
 import { IntegrityBadge, IntegrityLegend } from "@/components/integrity-badge";
 import { MoneyField } from "@/components/money-field";
 import { PageHeader } from "@/components/page-header";
@@ -162,6 +163,7 @@ export function AssetsView() {
           <p className="mt-2 text-sm leading-6 text-muted">
             {formatMoney(metrics.annualPassive)} a year ÷ {formatMoney(metrics.totalAssets)} of assets.
           </p>
+          <EfficiencyAside metrics={metrics} />
         </article>
       </section>
 

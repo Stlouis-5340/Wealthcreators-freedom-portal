@@ -11,10 +11,11 @@ import {
 import type { WeeklyCheckInView } from "@/lib/check-in";
 import type { CoachingNoteView, CoachingTaskView } from "@/lib/coaching";
 import { assessPlanIntegrity, type DataIntegrity } from "@/lib/integrity";
-import { computeMetrics } from "@/lib/metrics";
+import { computeMetrics, totalsFromLines } from "@/lib/metrics";
 import {
   resetPlanAction,
   setAssetValuationAction,
+  setCapitalRoleAction,
   toggleStepAction,
   updateAssetAction,
   updateExpenseAction,
@@ -53,6 +54,7 @@ interface PortalContextValue {
   updateStream: (id: string, monthly: number) => void;
   updateAsset: (id: string, balance: number) => void;
   setAssetValuation: (id: string, valuation: ManualValuation) => void;
+  setCapitalRole: (id: string, capitalRole: "income" | "appreciation" | "lifestyle") => void;
   updateLiability: (id: string, balance: number) => void;
   lineIntegrity: Record<string, DataIntegrity>;
   toggleStep: (id: string) => void;
@@ -82,6 +84,7 @@ const emptyMetrics = computeMetrics({
   monthlyExpenses: 0,
   totalAssets: 0,
   totalLiabilities: 0,
+  incomeProducingAssets: 0,
 });
 
 function withAmount<T extends { id: string }>(
@@ -130,11 +133,11 @@ export function PortalProvider({
       : guideRoster;
     const lineIntegrity = plan ? assessPlanIntegrity(plan).lines : {};
     const metrics = plan
-      ? computeMetrics({
-          monthlyPassive: plan.streams.reduce((sum, line) => sum + line.monthly, 0),
-          monthlyExpenses: plan.expenses.reduce((sum, line) => sum + line.monthly, 0),
-          totalAssets: plan.assets.reduce((sum, line) => sum + line.balance, 0),
-          totalLiabilities: plan.liabilities.reduce((sum, line) => sum + line.balance, 0),
+      ? totalsFromLines({
+          streams: plan.streams,
+          expenses: plan.expenses,
+          assets: plan.assets,
+          liabilities: plan.liabilities,
         })
       : emptyMetrics;
 
@@ -182,6 +185,14 @@ export function PortalProvider({
           ),
         });
         enqueue(`asset:${id}`, () => updateAssetAction(id, amount));
+      },
+      setCapitalRole: (id, capitalRole) => {
+        if (!plan) return;
+        updatePlan({
+          ...plan,
+          assets: plan.assets.map((line) => (line.id === id ? { ...line, capitalRole } : line)),
+        });
+        enqueue(`capital:${id}`, () => setCapitalRoleAction(id, capitalRole));
       },
       setAssetValuation: (id, valuation) => {
         if (!plan || isSyncedLine(id)) return;

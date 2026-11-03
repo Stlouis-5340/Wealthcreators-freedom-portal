@@ -1,10 +1,12 @@
 import type { Prisma } from "@prisma/client";
 import { fullGuideAccess, parseGuideAccess, type GuideAccess } from "@/lib/access";
+import { isCapitalRole } from "@/lib/efficiency";
 import { toCheckInView, type WeeklyCheckInView } from "@/lib/check-in";
 import { toNoteView, toTaskView, type CoachingNoteView, type CoachingTaskView } from "@/lib/coaching";
 import { prisma } from "@/lib/db";
 import { isPlaidConfigured } from "@/lib/plaid-config";
 import { applyGuideAccess, memberRow, type RosterRow } from "@/lib/roster";
+import { resetMemberScenarios } from "@/lib/scenario-store";
 import { memberSeeds, type SeedPlan } from "@/lib/sample-plans";
 import {
   planSignature,
@@ -106,6 +108,7 @@ export function toStoredPlan(user: PlanUser): StoredMemberPlan {
         valuation: line.valuation === "verified" ? "verified" : "estimated",
         confirmedAt: line.confirmedAt ? line.confirmedAt.toISOString() : null,
         refreshedAt: refreshed.assets.get(line.id) ?? null,
+        capitalRole: isCapitalRole(line.capitalRole) ? line.capitalRole : "",
       };
     }),
     liabilities: user.liabilities.map((line) => ({
@@ -191,6 +194,7 @@ function sharedSignature(rows: RosterRow[]): string {
         row.id,
         row.access.score ? String(row.metrics.freedomScore) : "score-hidden",
         row.access.totals ? String(row.metrics.netWorth) : "totals-hidden",
+        row.access.totals ? String(row.metrics.yieldOnIncomeAssets) : "income-yield-hidden",
         row.access.goals ? String(row.stepsDone) : "goals-hidden",
         row.access.checkIns ? String(row.checkIns.length) : "checkins-hidden",
         row.access.tasks ? row.tasks.map((task) => task.id).join(",") : "tasks-hidden",
@@ -261,6 +265,12 @@ function assertSnapshotPrivacy(snapshot: PortalSnapshot): void {
     }
     if (!row.access.totals && row.metrics.netWorth != null) {
       throw new Error("Guide snapshot included a hidden total.");
+    }
+    if (
+      !row.access.totals &&
+      (row.metrics.yieldOnIncomeAssets != null || row.metrics.incomeProducingAssets != null)
+    ) {
+      throw new Error("Guide snapshot included a hidden wealth-efficiency figure.");
     }
     if (!row.access.goals && row.goals.length > 0) {
       throw new Error("Guide snapshot included hidden goals.");
@@ -497,6 +507,7 @@ export async function replaceMemberPlan(memberId: string, plan: SeedPlan): Promi
           sort: line.sort,
           valuation: line.valuation === "verified" ? "verified" : "estimated",
           confirmedAt: line.confirmedAt,
+          capitalRole: isCapitalRole(line.capitalRole ?? "") ? line.capitalRole : "",
         })),
       });
     }
@@ -564,6 +575,18 @@ export async function updateMemberAmount(input: {
   return result.count === 1;
 }
 
+export async function setAssetCapitalRole(input: {
+  memberId: string;
+  lineId: string;
+  capitalRole: "income" | "appreciation" | "lifestyle";
+}): Promise<boolean> {
+  const result = await prisma.assetLine.updateMany({
+    where: { id: input.lineId, memberId: input.memberId },
+    data: { capitalRole: input.capitalRole },
+  });
+  return result.count === 1;
+}
+
 export async function setAssetValuation(input: {
   memberId: string;
   lineId: string;
@@ -600,4 +623,5 @@ export async function resetSeededPlans(memberIds: string[]): Promise<void> {
   for (const member of seeds) {
     await replaceMemberPlan(member.id, member.plan);
   }
+  await resetMemberScenarios(seeds.map((member) => member.id));
 }

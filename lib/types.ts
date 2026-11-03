@@ -76,6 +76,11 @@ export interface AssetLine {
   balance: number;
   /** Manual flag. Connected lines are labeled from refreshedAt instead. */
   valuation?: ManualValuation;
+  /**
+   * income, appreciation, lifestyle, or empty.
+   * Empty means the portal assumed a role from the holding type.
+   */
+  capitalRole?: string;
   /** ISO time the member last confirmed a manual balance. */
   confirmedAt?: string | null;
   /** ISO time of the last connected refresh, when this line came from Plaid. */
@@ -101,6 +106,10 @@ export interface Metrics {
   freedomScore: number | null;
   yieldOnAssets: number | null;
   yieldOnNetWorth: number | null;
+  /** Balance marked income-producing. Wealth Efficiency's primary denominator. */
+  incomeProducingAssets: number;
+  /** Annual qualifying passive ÷ income-producing assets, in percent. */
+  yieldOnIncomeAssets: number | null;
   monthlySurplus: number;
   /** max(0, monthly expenses − monthly qualifying passive income). */
   monthlyFreedomGap: number;

@@ -96,6 +96,16 @@ export function MemberView({
           primary
         />
         <Stat
+          label="Income-producing yield"
+          value={access.totals ? formatPercentOrDash(member.metrics.yieldOnIncomeAssets, 2) : "Not shared"}
+          detail={access.totals ? "Annual passive ÷ income-producing assets" : undefined}
+        />
+        <Stat
+          label="Wealth Efficiency"
+          value={access.totals ? formatPercentOrDash(member.metrics.yieldOnNetWorth, 2) : "Not shared"}
+          detail={access.totals ? "Annual passive ÷ net worth. Secondary." : undefined}
+        />
+        <Stat
           label="Net worth"
           value={money(access.totals, member.metrics.netWorth)}
           status={access.totals ? member.integrity.netWorth : undefined}

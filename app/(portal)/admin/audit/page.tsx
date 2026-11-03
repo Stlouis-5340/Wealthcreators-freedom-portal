@@ -34,7 +34,7 @@ export default async function Page({
       <PageHeader
         eyebrow="Admin"
         title="Audit log"
-        lede="Recent role changes, Guide assignments, visibility changes, pauses, authenticator changes, and Guide opens of a member summary or Freedom Report. Tokens and secrets are not stored here."
+        lede="Recent role changes, Guide assignments, visibility changes, pauses, authenticator changes, Guide opens of a member summary or Freedom Report, and shared forecast scenarios. Tokens and secrets are not stored here."
       />
       <form className="flex flex-wrap items-end gap-3" method="get">
         <label className="text-sm text-ink">

@@ -6,6 +6,7 @@ import { replaceMemberPlan } from "../lib/plan-store";
 import { encodeReportJson } from "../lib/report";
 import { demoActivity } from "../lib/sample-activity";
 import { alexPriorReport } from "../lib/sample-reports";
+import { resetMemberScenarios } from "../lib/scenario-store";
 import { assignmentSeeds, guideSeed, memberSeeds } from "../lib/sample-plans";
 
 const clearedSecurity = {
@@ -178,6 +179,8 @@ async function main() {
       generatedAt: new Date(prior.generatedAt),
     },
   });
+
+  await resetMemberScenarios(memberIds);
 }
 
 main()

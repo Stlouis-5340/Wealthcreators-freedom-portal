@@ -1,3 +1,4 @@
+import { resolveCapitalRole } from "./efficiency";
 import { freedomScorePercent, monthlyFreedomGap } from "./gap";
 import { AS_OF_YEAR, clamp, formatMoney, formatPercentOrDash, sum } from "./format";
 import type {
@@ -13,9 +14,13 @@ export function computeMetrics(input: {
   monthlyExpenses: number;
   totalAssets: number;
   totalLiabilities: number;
+  incomeProducingAssets: number;
 }): Metrics {
   const annualPassive = input.monthlyPassive * 12;
   const netWorth = input.totalAssets - input.totalLiabilities;
+  const incomeProducingAssets = Number.isFinite(input.incomeProducingAssets)
+    ? Math.max(0, input.incomeProducingAssets)
+    : 0;
   return {
     monthlyPassive: input.monthlyPassive,
     monthlyExpenses: input.monthlyExpenses,
@@ -28,6 +33,9 @@ export function computeMetrics(input: {
       input.totalAssets > 0 ? (annualPassive / input.totalAssets) * 100 : null,
     yieldOnNetWorth:
       netWorth > 0 ? (annualPassive / netWorth) * 100 : null,
+    incomeProducingAssets,
+    yieldOnIncomeAssets:
+      incomeProducingAssets > 0 ? (annualPassive / incomeProducingAssets) * 100 : null,
     monthlySurplus: input.monthlyPassive - input.monthlyExpenses,
     monthlyFreedomGap: monthlyFreedomGap(input.monthlyExpenses, input.monthlyPassive),
   };
@@ -174,13 +182,18 @@ export function stepTotals(goals: ResolvedGoal[]): {
 export function totalsFromLines(input: {
   streams: { monthly: number }[];
   expenses: { monthly: number }[];
-  assets: { balance: number }[];
+  assets: { name: string; group: string; balance: number; capitalRole?: string }[];
   liabilities: { balance: number }[];
 }): Metrics {
+  const incomeProducingAssets = input.assets.reduce((total, asset) => {
+    if (resolveCapitalRole(asset).role !== "income") return total;
+    return total + (Number.isFinite(asset.balance) ? Math.max(0, asset.balance) : 0);
+  }, 0);
   return computeMetrics({
     monthlyPassive: sum(input.streams.map((stream) => stream.monthly)),
     monthlyExpenses: sum(input.expenses.map((expense) => expense.monthly)),
     totalAssets: sum(input.assets.map((asset) => asset.balance)),
     totalLiabilities: sum(input.liabilities.map((item) => item.balance)),
+    incomeProducingAssets,
   });
 }

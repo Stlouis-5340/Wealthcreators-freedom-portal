@@ -142,6 +142,10 @@ export function RosterView() {
                     value={row.access.totals ? formatPercentOrDash(row.metrics.yieldOnAssets, 2) : "Not shared"}
                   />
                   <Metric
+                    label="Wealth Efficiency"
+                    value={row.access.totals ? formatPercentOrDash(row.metrics.yieldOnNetWorth, 2) : "Not shared"}
+                  />
+                  <Metric
                     label="6-year goal"
                     value={row.access.goals && Number.isFinite(row.sixYearProgress) ? `${Math.round(row.sixYearProgress)}%` : "Not shared"}
                   />

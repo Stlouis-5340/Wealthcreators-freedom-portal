@@ -56,6 +56,8 @@ export interface SeedPlan {
     sort: number;
     /** "estimated" or "verified". See lib/integrity.ts. */
     valuation: "estimated" | "verified";
+    /** income, appreciation, lifestyle, or omitted to assume from the holding type. */
+    capitalRole?: string;
     /**
      * Last manual confirmation. The duplex date is before the 14-day stale
      * window so the demo shows a stale label. Cash is confirmed on the
@@ -131,6 +133,14 @@ function mapGoals(goals: Goal[]): SeedGoal[] {
   }));
 }
 
+const alexCapitalRole: Record<string, string> = {
+  brokerage: "income",
+  cash: "income",
+  duplex: "income",
+  retirement: "appreciation",
+  home: "lifestyle",
+};
+
 const assetConfidence: Record<string, { valuation: "estimated" | "verified"; confirmedAt: Date | null }> = {
   // Confirmed on the sample as-of date. Inside the 14-day window on 2026-11-03.
   cash: { valuation: "verified", confirmedAt: new Date("2026-10-27T00:00:00.000Z") },
@@ -147,6 +157,7 @@ function alexPlan(): SeedPlan {
       sort,
       valuation: assetConfidence[line.id]?.valuation ?? "estimated",
       confirmedAt: assetConfidence[line.id]?.confirmedAt ?? null,
+      capitalRole: alexCapitalRole[line.id] ?? "",
     })),
     liabilities: alexLiabilities.map((line, sort) => ({ ...line, sort })),
     goals: mapGoals(alexGoals),
