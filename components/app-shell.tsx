@@ -6,7 +6,10 @@ import { useEffect, useState, type ReactNode } from "react";
 import { BrandLogo } from "@/components/brand-logo";
 import { usePortal } from "@/components/portal-provider";
 import { signOutAction } from "@/lib/auth-actions";
+import { homeForRole, roleTitle } from "@/lib/demo-accounts";
 import type { Role } from "@/lib/types";
+
+const securityLink = { href: "/security", label: "Security" };
 
 const memberNav = [
   { href: "/", label: "Dashboard" },
@@ -17,12 +20,24 @@ const memberNav = [
   { href: "/assets", label: "Net Worth" },
   { href: "/spending", label: "Spending Plan" },
   { href: "/milestones", label: "Milestones" },
+  { href: "/settings", label: "Guide access" },
+  securityLink,
 ];
 
-const guideNav = [{ href: "/guide", label: "Command center" }];
+const guideNav = [
+  { href: "/guide", label: "Command center" },
+  securityLink,
+];
+
+const adminNav = [
+  { href: "/admin", label: "People" },
+  { href: "/admin/audit", label: "Audit log" },
+  securityLink,
+];
 
 function navActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
+  if (href === "/admin") return pathname === "/admin";
   if (href === "/report") return pathname === "/report" || pathname.startsWith("/reports/");
   return pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -32,14 +47,15 @@ export function AppShell({
   user,
 }: {
   children: ReactNode;
-  user: { name: string; email: string; role: Role };
+  user: { name: string; email: string; role: Role; mfaEnabled: boolean };
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const { resetDemo } = usePortal();
   const [menuOpen, setMenuOpen] = useState(false);
-  const homeHref = user.role === "guide" ? "/guide" : "/";
-  const links = user.role === "guide" ? guideNav : memberNav;
+  const homeHref = homeForRole(user.role);
+  const links = user.role === "guide" ? guideNav : user.role === "admin" ? adminNav : memberNav;
+  const showMfaBanner = (user.role === "guide" || user.role === "admin") && !user.mfaEnabled;
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? "hidden" : "";
@@ -108,12 +124,24 @@ export function AppShell({
           </button>
         </header>
         <main id="content" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-10 lg:py-10">
+          {showMfaBanner ? (
+            <p className="mb-6 rounded-2xl border border-gold/50 bg-surface px-4 py-3 text-sm leading-6">
+              <span className="font-medium text-ink">Add an authenticator app.</span>{" "}
+              <span className="text-muted">
+                Guides and admins are asked to turn on a second sign-in step. Demo password sign-in
+                still works until you enroll.{" "}
+              </span>
+              <Link href="/security" className="text-gold hover:text-gold-bright">
+                Set it up
+              </Link>
+            </p>
+          ) : null}
           {children}
           <p className="no-print mt-12 max-w-3xl text-xs leading-5 text-muted">
             Seeded sample plan for the Wealth Creators demo, as of October 27, 2026.
             Edits are saved to the portal database. Plaid access tokens stay on the server,
-            and guides see totals, check-ins, and the monthly coaching report, not bank names
-            or account numbers. Weekly check-ins and the Freedom Report are coaching tools.
+            and guides see only the parts a member has shared, not bank names, category
+            spending, or account numbers. Weekly check-ins and the Freedom Report are coaching tools.
             Freedom Score, Freedom Gap, Freedom Quality, and yield are educational planning
             tools, not investment advice. An assumed yield is an illustration. Returns are not
             guaranteed.
@@ -189,28 +217,29 @@ function AccountCard({
   user,
   onReset,
 }: {
-  user: { name: string; email: string; role: Role };
+  user: { name: string; email: string; role: Role; mfaEnabled: boolean };
   onReset: () => void;
 }) {
-  const title = user.role === "guide" ? "Wealth Guide" : "Member";
   return (
     <div className="border-t border-line p-4">
       <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Signed in</p>
       <p className="mt-2 text-sm font-medium text-ink">{user.name}</p>
-      <p className="text-xs text-gold-muted">{title}</p>
+      <p className="text-xs text-gold-muted">{roleTitle(user.role)}</p>
       <p className="mt-1 truncate text-xs text-muted">{user.email}</p>
       <form action={signOutAction}>
         <button type="submit" className="wc-btn wc-btn-primary mt-3 w-full">
           Sign out
         </button>
       </form>
-      <button
-        type="button"
-        className="mt-2 w-full text-center text-xs text-muted underline-offset-2 hover:text-ink hover:underline"
-        onClick={onReset}
-      >
-        Reset demo data
-      </button>
+      {user.role === "admin" ? null : (
+        <button
+          type="button"
+          className="mt-2 w-full text-center text-xs text-muted underline-offset-2 hover:text-ink hover:underline"
+          onClick={onReset}
+        >
+          Reset demo data
+        </button>
+      )}
     </div>
   );
 }

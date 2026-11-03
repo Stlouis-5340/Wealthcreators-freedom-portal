@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { signupAction, type AuthFormState } from "@/lib/auth-actions";
 
-const initial: AuthFormState = { error: "", message: "" };
+const initial: AuthFormState = { error: "", message: "", mfaEmail: "" };
 
 export function SignupForm() {
   const [state, action, pending] = useActionState(signupAction, initial);

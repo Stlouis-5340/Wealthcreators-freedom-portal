@@ -29,6 +29,7 @@ async function AuthedShell({ children }: { children: ReactNode }) {
           name: snapshot.viewer.name,
           email: snapshot.viewer.email,
           role: snapshot.viewer.role,
+          mfaEnabled: snapshot.viewer.mfaEnabled,
         }}
       >
         {children}

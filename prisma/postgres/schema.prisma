@@ -10,33 +10,42 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-/// Portal account. role is "member" or "guide".
+/// Portal account. role is "member", "guide", or "admin".
+/// isActive false cannot sign in. mfaSecretEnc is an AES payload, never a client field.
 model User {
-  id           String   @id
-  email        String   @unique
-  passwordHash String
-  name         String
-  role         String
-  lastActive   String   @default("")
-  coachingNote String   @default("")
-  rosterSort   Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                  String   @id
+  email               String   @unique
+  passwordHash        String
+  name                String
+  role                String
+  lastActive          String   @default("")
+  coachingNote        String   @default("")
+  rosterSort          Int      @default(0)
+  isActive            Boolean  @default(true)
+  mfaEnabled          Boolean  @default(false)
+  mfaSecretEnc        String   @default("")
+  mfaPendingSecretEnc String   @default("")
+  mfaRecoveryHashes   String   @default("[]")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  guiding       GuideAssignment[] @relation("GuideUser")
-  guides        GuideAssignment[] @relation("MemberUser")
-  expenses      ExpenseLine[]
-  streams       PassiveStream[]
-  assets        AssetLine[]
-  liabilities   LiabilityLine[]
-  goals         Goal[]
-  plaidItems    PlaidItem[]
-  checkIns      WeeklyCheckIn[]
-  notesAbout    CoachingNote[]    @relation("NoteMember")
-  notesWritten  CoachingNote[]    @relation("NoteGuide")
-  tasksAbout    CoachingTask[]    @relation("TaskMember")
-  tasksAssigned CoachingTask[]    @relation("TaskGuide")
-  reports       MonthlyReport[]
+  guiding        GuideAssignment[] @relation("GuideUser")
+  guides         GuideAssignment[] @relation("MemberUser")
+  expenses       ExpenseLine[]
+  streams        PassiveStream[]
+  assets         AssetLine[]
+  liabilities    LiabilityLine[]
+  goals          Goal[]
+  plaidItems     PlaidItem[]
+  checkIns       WeeklyCheckIn[]
+  notesAbout     CoachingNote[]    @relation("NoteMember")
+  notesWritten   CoachingNote[]    @relation("NoteGuide")
+  tasksAbout     CoachingTask[]    @relation("TaskMember")
+  tasksAssigned  CoachingTask[]    @relation("TaskGuide")
+  reports        MonthlyReport[]
+  grantsAsMember GuideAccessGrant[] @relation("GrantMember")
+  grantsAsGuide  GuideAccessGrant[] @relation("GrantGuide")
+  auditLogs      AuditLog[]
 }
 
 model GuideAssignment {
@@ -260,4 +269,38 @@ model MonthlyReport {
   @@unique([memberId, monthKey])
   @@index([memberId])
   @@index([monthKey])
+}
+
+/// What an assigned Guide may see. Category spending and transactions are not scopes in v1.
+/// scopes is JSON: score, totals, goals, checkIns, tasks. revokedAt null means the grant is on.
+model GuideAccessGrant {
+  id        String    @id @default(cuid())
+  memberId  String
+  guideId   String
+  member    User      @relation("GrantMember", fields: [memberId], references: [id], onDelete: Cascade)
+  guide     User      @relation("GrantGuide", fields: [guideId], references: [id], onDelete: Cascade)
+  scopes    String
+  grantedAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  @@index([memberId])
+  @@index([guideId])
+  @@index([memberId, guideId])
+}
+
+/// Security and coaching access events. meta is JSON and must not hold tokens or secrets.
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String
+  actor       User     @relation(fields: [actorUserId], references: [id], onDelete: Cascade)
+  action      String
+  targetType  String
+  targetId    String
+  meta        String   @default("{}")
+  ip          String   @default("")
+  createdAt   DateTime @default(now())
+
+  @@index([action])
+  @@index([createdAt])
+  @@index([actorUserId])
 }

@@ -215,7 +215,8 @@ export function PortalProvider({
         enqueue(`step:${id}`, () => toggleStepAction(id, done));
       },
       resetDemo: () => {
-        const home = snapshot.viewer.role === "guide" ? "/guide" : "/";
+        const home =
+          snapshot.viewer.role === "guide" ? "/guide" : snapshot.viewer.role === "admin" ? "/admin" : "/";
         void resetPlanAction().then(() => {
           window.location.assign(home);
         });

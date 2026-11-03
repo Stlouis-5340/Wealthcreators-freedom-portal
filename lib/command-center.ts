@@ -31,27 +31,51 @@ export function attentionQueues(rows: RosterRow[], now = new Date()): AttentionQ
   const progress: { item: AttentionItem; score: number }[] = [];
 
   for (const row of rows) {
-    const checkIns = sortCheckIns(row.checkIns);
-    const supportReason = requestedSupportReason(checkIns);
-    if (supportReason) support.push({ memberId: row.id, reason: supportReason });
+    const checkIns = row.access.checkIns ? sortCheckIns(row.checkIns) : [];
+    if (row.access.checkIns) {
+      const supportReason = requestedSupportReason(checkIns);
+      if (supportReason) support.push({ memberId: row.id, reason: supportReason });
 
-    const missedReasonText = missedCheckInReason(checkIns, weekKey);
-    if (missedReasonText) missed.push({ memberId: row.id, reason: missedReasonText });
+      const missedReasonText = missedCheckInReason(checkIns, weekKey);
+      if (missedReasonText) missed.push({ memberId: row.id, reason: missedReasonText });
+    }
 
-    const decline = declineReason(checkIns, row.metrics.freedomScore, weekKey);
+    const liveScore = row.access.score && Number.isFinite(row.metrics.freedomScore) ? row.metrics.freedomScore : null;
+    const decline =
+      row.access.score && row.access.checkIns ? declineReason(checkIns, liveScore, weekKey) : null;
     if (decline) declining.push({ item: { memberId: row.id, reason: decline.reason }, drop: decline.drop });
 
-    const behindText = behindReason(row, today);
+    const behindText = behindReason(
+      {
+        goals: row.access.goals ? row.goals : [],
+        stepsDone: row.access.goals ? row.stepsDone : 0,
+        stepsTotal: row.access.goals ? row.stepsTotal : 0,
+        tasks: row.access.tasks ? row.tasks : [],
+      },
+      today,
+    );
     if (behindText) {
       const ratio = row.stepsTotal > 0 ? row.stepsDone / row.stepsTotal : 1;
       behind.push({ item: { memberId: row.id, reason: behindText }, ratio });
     }
 
-    const progressText = progressReason(row, checkIns, weekKey);
+    const progressText = progressReason(
+      {
+        goals: row.access.goals ? row.goals : [],
+        stepsDone: row.access.goals ? row.stepsDone : 0,
+        stepsTotal: row.access.goals ? row.stepsTotal : 0,
+        metrics: {
+          ...row.metrics,
+          freedomScore: row.access.score && Number.isFinite(row.metrics.freedomScore) ? row.metrics.freedomScore : null,
+        },
+      },
+      row.access.checkIns ? checkIns : [],
+      weekKey,
+    );
     if (progressText) {
       progress.push({
         item: { memberId: row.id, reason: progressText },
-        score: row.metrics.freedomScore ?? -1,
+        score: row.access.score && row.metrics.freedomScore != null ? row.metrics.freedomScore : -1,
       });
     }
   }

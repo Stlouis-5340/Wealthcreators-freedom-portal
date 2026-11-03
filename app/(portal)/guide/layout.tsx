@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
-import { auth } from "@/auth";
+import { auth, isPortalRole } from "@/auth";
+import { homeForRole } from "@/lib/demo-accounts";
 
 export const instant = false;
 
@@ -14,6 +15,7 @@ export default function GuideLayout({ children }: { children: ReactNode }) {
 
 async function GuideGate({ children }: { children: ReactNode }) {
   const session = await auth();
-  if (session?.user?.role !== "guide") redirect("/");
+  const role = session?.user?.role;
+  if (role !== "guide") redirect(isPortalRole(role) ? homeForRole(role) : "/login");
   return children;
 }

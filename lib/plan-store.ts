@@ -1,12 +1,12 @@
 import type { Prisma } from "@prisma/client";
+import { fullGuideAccess, parseGuideAccess, type GuideAccess } from "@/lib/access";
 import { toCheckInView, type WeeklyCheckInView } from "@/lib/check-in";
 import { toNoteView, toTaskView, type CoachingNoteView, type CoachingTaskView } from "@/lib/coaching";
 import { prisma } from "@/lib/db";
 import { isPlaidConfigured } from "@/lib/plaid-config";
-import { memberRow, type RosterRow } from "@/lib/roster";
+import { applyGuideAccess, memberRow, type RosterRow } from "@/lib/roster";
 import { memberSeeds, type SeedPlan } from "@/lib/sample-plans";
 import {
-  guideSignature,
   planSignature,
   toClient,
   type ConnectedItem,
@@ -163,21 +163,40 @@ function snapshotFor(
   rosterPlans: StoredMemberPlan[],
   connectedItems: ConnectedItem[],
   activity: PortalActivity,
+  accessByMember?: Map<string, GuideAccess>,
 ): PortalSnapshot {
-  const roster = rosterPlans.map(memberRow).map((row) =>
-    withActivity(row, activity, viewer.role === "guide"),
+  let roster = rosterPlans.map(memberRow).map((row) =>
+    withActivity(row, activity, viewer.role === "guide" || viewer.role === "admin"),
   );
-  const signatureBase = viewer.role === "guide" ? guideSignature(rosterPlans) : planSignature(rosterPlans);
+  if (viewer.role === "guide") {
+    roster = roster.map((row) => applyGuideAccess(row, accessByMember?.get(row.id) ?? fullGuideAccess));
+  }
+  const signatureBase = viewer.role === "member" ? planSignature(rosterPlans) : sharedSignature(roster);
   const snapshot = toClient({
     viewer,
     plan,
     roster,
     plaidConfigured: isPlaidConfigured(),
     connectedItems,
-    signature: `${signatureBase}#${viewer.role === "guide" ? "" : connectionSignature(connectedItems)}#${activitySignature(roster)}`,
+    signature: `${signatureBase}#${viewer.role === "member" ? connectionSignature(connectedItems) : ""}#${activitySignature(roster)}`,
   });
   assertSnapshotPrivacy(snapshot);
   return snapshot;
+}
+
+function sharedSignature(rows: RosterRow[]): string {
+  return rows
+    .map((row) =>
+      [
+        row.id,
+        row.access.score ? String(row.metrics.freedomScore) : "score-hidden",
+        row.access.totals ? String(row.metrics.netWorth) : "totals-hidden",
+        row.access.goals ? String(row.stepsDone) : "goals-hidden",
+        row.access.checkIns ? String(row.checkIns.length) : "checkins-hidden",
+        row.access.tasks ? row.tasks.map((task) => task.id).join(",") : "tasks-hidden",
+      ].join("|"),
+    )
+    .join("||");
 }
 
 function withActivity(row: RosterRow, activity: PortalActivity, includeCoaching: boolean): RosterRow {
@@ -226,9 +245,32 @@ function assertSnapshotPrivacy(snapshot: PortalSnapshot): void {
   ) {
     throw new Error("Portal snapshot included a secret field.");
   }
+  if (snapshot.viewer.role === "admin") {
+    if (snapshot.plan !== null || snapshot.connectedItems.length > 0 || snapshot.roster.length > 0) {
+      throw new Error("Admin snapshot included member financial detail.");
+    }
+    return;
+  }
   if (snapshot.viewer.role !== "guide") return;
   if (snapshot.plan !== null || snapshot.connectedItems.length > 0) {
     throw new Error("Guide snapshot included member account detail.");
+  }
+  for (const row of snapshot.roster) {
+    if (!row.access.score && (row.metrics.freedomScore != null || row.quality.score != null)) {
+      throw new Error("Guide snapshot included a hidden Freedom Score.");
+    }
+    if (!row.access.totals && row.metrics.netWorth != null) {
+      throw new Error("Guide snapshot included a hidden total.");
+    }
+    if (!row.access.goals && row.goals.length > 0) {
+      throw new Error("Guide snapshot included hidden goals.");
+    }
+    if (!row.access.checkIns && row.checkIns.length > 0) {
+      throw new Error("Guide snapshot included hidden check-ins.");
+    }
+    if (!row.access.tasks && row.tasks.length > 0) {
+      throw new Error("Guide snapshot included hidden tasks.");
+    }
   }
   for (const word of ["Vanguard", "Fidelity", "TreasuryDirect"]) {
     if (structural.includes(word)) throw new Error("Guide snapshot included an institution name.");
@@ -322,10 +364,10 @@ export async function loadPortalSnapshot(input: {
       where: { id: input.id },
       include: planInclude,
     });
-    if (!user || user.role !== "member") return null;
+    if (!user || user.role !== "member" || !user.isActive) return null;
     const plan = toStoredPlan(user);
     return snapshotFor(
-      { id: user.id, name: user.name, email: user.email, role: "member" },
+      { id: user.id, name: user.name, email: user.email, role: "member", mfaEnabled: user.mfaEnabled },
       plan,
       [plan],
       await connectedItemsFor(user.id),
@@ -333,10 +375,26 @@ export async function loadPortalSnapshot(input: {
     );
   }
 
-  const guide = await prisma.user.findUnique({ where: { id: input.id } });
-  if (!guide || guide.role !== "guide") return null;
+  const viewer = await prisma.user.findUnique({ where: { id: input.id } });
+  if (!viewer || !viewer.isActive) return null;
+  if (viewer.role === "admin") {
+    return snapshotFor(
+      {
+        id: viewer.id,
+        name: viewer.name,
+        email: viewer.email,
+        role: "admin",
+        mfaEnabled: viewer.mfaEnabled,
+      },
+      null,
+      [],
+      [],
+      { checkIns: [], notes: [], tasks: [] },
+    );
+  }
+  if (viewer.role !== "guide") return null;
   const assignments = await prisma.guideAssignment.findMany({
-    where: { guideId: guide.id },
+    where: { guideId: viewer.id },
     orderBy: { sort: "asc" },
     include: { member: { include: planInclude } },
   });
@@ -344,13 +402,57 @@ export async function loadPortalSnapshot(input: {
     .map((assignment) => assignment.member)
     .filter((member) => member.role === "member")
     .map(toStoredPlan);
+  const grants = await prisma.guideAccessGrant.findMany({
+    where: {
+      guideId: viewer.id,
+      revokedAt: null,
+      memberId: { in: plans.map((plan) => plan.id) },
+    },
+    orderBy: { grantedAt: "desc" },
+  });
+  const accessByMember = new Map<string, GuideAccess>();
+  for (const grant of grants) {
+    if (!accessByMember.has(grant.memberId)) {
+      accessByMember.set(grant.memberId, parseGuideAccess(grant.scopes));
+    }
+  }
   return snapshotFor(
-    { id: guide.id, name: guide.name, email: guide.email, role: "guide" },
+    { id: viewer.id, name: viewer.name, email: viewer.email, role: "guide", mfaEnabled: viewer.mfaEnabled },
     null,
     plans,
     [],
     await loadActivity(plans.map((plan) => plan.id), "guide"),
+    accessByMember,
   );
+}
+
+export async function integrityCensus(): Promise<{
+  members: number;
+  staleLabels: number;
+  missingLabels: number;
+  membersWithStale: number;
+  membersWithMissing: number;
+}> {
+  const { assessPlanIntegrity } = await import("@/lib/integrity");
+  const users = await prisma.user.findMany({
+    where: { role: "member" },
+    include: planInclude,
+  });
+  let staleLabels = 0;
+  let missingLabels = 0;
+  let membersWithStale = 0;
+  let membersWithMissing = 0;
+  for (const user of users) {
+    const summary = assessPlanIntegrity(toStoredPlan(user)).summary;
+    const labels = Object.values(summary);
+    const stale = labels.filter((label) => label === "stale").length;
+    const missing = labels.filter((label) => label === "missing").length;
+    staleLabels += stale;
+    missingLabels += missing;
+    if (stale > 0) membersWithStale += 1;
+    if (missing > 0) membersWithMissing += 1;
+  }
+  return { members: users.length, staleLabels, missingLabels, membersWithStale, membersWithMissing };
 }
 
 export async function replaceMemberPlan(memberId: string, plan: SeedPlan): Promise<void> {

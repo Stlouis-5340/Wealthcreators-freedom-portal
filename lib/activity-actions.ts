@@ -1,6 +1,5 @@
 "use server";
 
-import { auth, isPortalRole } from "@/auth";
 import {
   addCoachingNote,
   addCoachingTask,
@@ -9,13 +8,13 @@ import {
 } from "@/lib/activity-store";
 import { parseCheckInDraft, type CheckInDraft } from "@/lib/check-in";
 import { isTaskStatus, parseNoteBody, parseTaskDraft } from "@/lib/coaching";
+import { requireGuide, requireMember } from "@/lib/permissions";
 
 export type ActionResult = { ok: true } | { ok: false; message: string };
 
 export async function saveWeeklyCheckInAction(draft: CheckInDraft): Promise<ActionResult> {
-  const session = await auth();
-  const user = session?.user;
-  if (!user?.id || !isPortalRole(user.role) || user.role !== "member") {
+  const user = await requireMember();
+  if (!user) {
     return { ok: false, message: "Sign in as a member to save a check-in." };
   }
   const parsed = parseCheckInDraft(draft);
@@ -72,8 +71,5 @@ export async function setCoachingTaskStatusAction(
 }
 
 async function guideSession() {
-  const session = await auth();
-  const user = session?.user;
-  if (!user?.id || !isPortalRole(user.role) || user.role !== "guide") return null;
-  return user;
+  return requireGuide();
 }

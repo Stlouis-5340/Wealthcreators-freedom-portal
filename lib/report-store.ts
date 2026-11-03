@@ -1,4 +1,7 @@
+import { fullGuideAccess, type GuideAccess } from "@/lib/access";
 import { guideAssigned } from "@/lib/activity-store";
+import { writeAudit } from "@/lib/audit";
+import { activeGuideAccess } from "@/lib/grants";
 import { actionLabel, toCheckInView, type WeeklyCheckInView } from "@/lib/check-in";
 import { prisma } from "@/lib/db";
 import {
@@ -74,6 +77,8 @@ export interface FreedomReportModel {
   sharePath: string;
   audience: "member" | "guide";
   coaching: CoachingHighlights | null;
+  /** Guides only receive the parts the member has turned on. Members always have the full set. */
+  access: GuideAccess;
 }
 
 export type ReportPageResult =
@@ -164,6 +169,7 @@ export async function loadMonthlyReport(input: {
   const currentKey = chicagoMonthKey(now);
   if (!isMonthKey(input.monthKey) || input.monthKey > currentKey) return { status: "invalid" };
   if (!(await canRead(input.viewerId, input.viewerRole, input.memberId))) return { status: "forbidden" };
+  const audience: "member" | "guide" = input.viewerRole === "guide" ? "guide" : "member";
 
   const member = await prisma.user.findUnique({
     where: { id: input.memberId },
@@ -195,6 +201,9 @@ export async function loadMonthlyReport(input: {
     href: hrefForMonth(item.monthKey),
   }));
   if (!row) {
+    if (input.viewerRole === "guide") {
+      await recordReportOpen(input.viewerId, member.id, input.monthKey, "missing");
+    }
     return {
       status: "missing",
       memberId: member.id,
@@ -202,7 +211,7 @@ export async function loadMonthlyReport(input: {
       monthKey: input.monthKey,
       monthLabel: formatMonthLabel(input.monthKey),
       months,
-      audience: input.viewerRole,
+      audience,
     };
   }
 
@@ -223,30 +232,37 @@ export async function loadMonthlyReport(input: {
   const coaching =
     input.viewerRole === "guide" ? await coachingFor(input.memberId, input.monthKey, checkIns) : null;
 
-  return {
-    status: "ready",
-    model: {
-      memberId: member.id,
-      memberName: member.name,
-      monthKey: row.monthKey,
-      monthLabel: formatMonthLabel(row.monthKey),
-      monthName: formatMonthName(row.monthKey),
-      generatedAt: row.generatedAt.toISOString(),
-      numbers,
-      baseline,
-      deltas: deltasFor(numbers, baseline),
-      goals: parseGoalsSummary(row.goalsSummary),
-      milestones: parseMilestones(row.milestones),
-      actions: parseActions(row.actions),
-      educationNote: EDUCATION_PLACEHOLDER,
-      guidance: EDUCATIONAL_LABEL,
-      months,
-      isCurrent: row.monthKey === currentKey,
-      sharePath: reportPath(member.id, row.monthKey),
-      audience: input.viewerRole,
-      coaching,
-    },
+  const access =
+    input.viewerRole === "guide"
+      ? ((await activeGuideAccess(input.viewerId, input.memberId)) ?? fullGuideAccess)
+      : fullGuideAccess;
+  const model: FreedomReportModel = {
+    memberId: member.id,
+    memberName: member.name,
+    monthKey: row.monthKey,
+    monthLabel: formatMonthLabel(row.monthKey),
+    monthName: formatMonthName(row.monthKey),
+    generatedAt: row.generatedAt.toISOString(),
+    numbers,
+    baseline,
+    deltas: deltasFor(numbers, baseline),
+    goals: parseGoalsSummary(row.goalsSummary),
+    milestones: parseMilestones(row.milestones),
+    actions: parseActions(row.actions),
+    educationNote: EDUCATION_PLACEHOLDER,
+    guidance: EDUCATIONAL_LABEL,
+    months,
+    isCurrent: row.monthKey === currentKey,
+    sharePath: reportPath(member.id, row.monthKey),
+    audience,
+    coaching,
+    access,
   };
+  if (input.viewerRole === "guide") {
+    await recordReportOpen(input.viewerId, member.id, input.monthKey, "ready");
+    return { status: "ready", model: redactGuideReport(model, access) };
+  }
+  return { status: "ready", model };
 }
 
 function numbersFromRow(row: ReportRow): ReportNumbers {
@@ -270,7 +286,84 @@ function snapshotOf(row: ReportRow): { numbers: ReportNumbers; goals: GoalSummar
 
 async function canRead(viewerId: string, role: Role, memberId: string): Promise<boolean> {
   if (role === "member") return viewerId === memberId;
-  return guideAssigned(viewerId, memberId);
+  if (role === "guide") return guideAssigned(viewerId, memberId);
+  return false;
+}
+
+function redactGuideReport(model: FreedomReportModel, access: GuideAccess): FreedomReportModel {
+  const numbers = { ...model.numbers };
+  const baselineNumbers = { ...model.baseline.numbers };
+  if (!access.score) {
+    numbers.freedomScore = null;
+    numbers.gap = null;
+    numbers.quality = null;
+    baselineNumbers.freedomScore = null;
+    baselineNumbers.gap = null;
+    baselineNumbers.quality = null;
+  }
+  if (!access.totals) {
+    numbers.passive = null;
+    numbers.expenses = null;
+    numbers.netWorth = null;
+    numbers.yieldOnAssets = null;
+    baselineNumbers.passive = null;
+    baselineNumbers.expenses = null;
+    baselineNumbers.netWorth = null;
+    baselineNumbers.yieldOnAssets = null;
+  }
+  const baseline = {
+    ...model.baseline,
+    numbers: baselineNumbers,
+    detail:
+      access.score && access.totals
+        ? model.baseline.detail
+        : "Some figures on this report are not shared with you, so those cards stay blank.",
+  };
+  const shareActions = access.score && access.totals && access.goals;
+  return {
+    ...model,
+    access,
+    numbers,
+    baseline,
+    deltas: deltasFor(numbers, baseline),
+    goals: access.goals ? model.goals : [],
+    milestones: {
+      ...model.milestones,
+      bands: access.score ? model.milestones.bands : [],
+      steps: access.goals ? model.milestones.steps : [],
+      note:
+        access.score || access.goals
+          ? model.milestones.note
+          : "Milestones that name a score or a goal are not shared.",
+    },
+    actions: shareActions ? model.actions : [],
+    coaching: model.coaching
+      ? {
+          latest: access.checkIns ? model.coaching.latest : null,
+          openTaskCount: access.tasks ? model.coaching.openTaskCount : 0,
+          noteCount: model.coaching.noteCount,
+        }
+      : null,
+  };
+}
+
+async function recordReportOpen(
+  guideId: string,
+  memberId: string,
+  monthKey: string,
+  status: "ready" | "missing",
+): Promise<void> {
+  try {
+    await writeAudit({
+      actorUserId: guideId,
+      action: "guide.open_report",
+      targetType: "member",
+      targetId: memberId,
+      meta: { monthKey, status },
+    });
+  } catch {
+    // The report still opens if the audit row cannot be written.
+  }
 }
 
 async function coachingFor(

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { GuideCoachingReport } from "@/components/guide-coaching-report";
 import { MemberView } from "@/components/views/member-view";
+import { recordGuideSummaryView } from "@/lib/guide-view";
 import { isMemberId, memberIds } from "@/lib/sample-data";
 
 export const metadata: Metadata = {
@@ -24,6 +25,7 @@ export default async function Page({
   const { memberId } = await params;
   const { month } = await searchParams;
   if (!isMemberId(memberId)) notFound();
+  await recordGuideSummaryView(memberId);
   return (
     <MemberView memberId={memberId}>
       <GuideCoachingReport memberId={memberId} monthKey={month ?? null} />
