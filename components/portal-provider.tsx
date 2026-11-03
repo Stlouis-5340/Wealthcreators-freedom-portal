@@ -8,6 +8,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import type { WeeklyCheckInView } from "@/lib/check-in";
+import type { CoachingNoteView, CoachingTaskView } from "@/lib/coaching";
 import { assessPlanIntegrity, type DataIntegrity } from "@/lib/integrity";
 import { computeMetrics } from "@/lib/metrics";
 import {
@@ -60,6 +62,21 @@ interface PortalContextValue {
 
 const PortalContext = createContext<PortalContextValue | null>(null);
 
+interface MemberActivity {
+  checkIns: WeeklyCheckInView[];
+  notes: CoachingNoteView[];
+  tasks: CoachingTaskView[];
+}
+
+function activityFor(rows: RosterRow[], id: string): MemberActivity {
+  const row = rows.find((member) => member.id === id);
+  return {
+    checkIns: row?.checkIns ?? [],
+    notes: row?.notes ?? [],
+    tasks: row?.tasks ?? [],
+  };
+}
+
 const emptyMetrics = computeMetrics({
   monthlyPassive: 0,
   monthlyExpenses: 0,
@@ -85,6 +102,9 @@ export function PortalProvider({
 }) {
   const [plan, setPlan] = useState<StoredMemberPlan | null>(snapshot.plan);
   const [guideRoster, setGuideRoster] = useState<RosterRow[]>(snapshot.roster);
+  const [activity, setActivity] = useState<MemberActivity>(() =>
+    activityFor(snapshot.roster, snapshot.plan?.id ?? snapshot.viewer.id),
+  );
   const [connectedItems, setConnectedItems] = useState<ConnectedItem[]>(snapshot.connectedItems);
   const [signature, setSignature] = useState(snapshot.signature);
   const chains = useRef(new Map<string, Promise<void>>());
@@ -93,11 +113,21 @@ export function PortalProvider({
     setSignature(snapshot.signature);
     setPlan(snapshot.plan);
     setGuideRoster(snapshot.roster);
+    setActivity(activityFor(snapshot.roster, snapshot.plan?.id ?? snapshot.viewer.id));
     setConnectedItems(snapshot.connectedItems);
   }
 
   const value = useMemo<PortalContextValue>(() => {
-    const roster = plan ? [memberRow(plan)] : guideRoster;
+    const roster = plan
+      ? [
+          {
+            ...memberRow(plan),
+            checkIns: activity.checkIns,
+            notes: activity.notes,
+            tasks: activity.tasks,
+          },
+        ]
+      : guideRoster;
     const lineIntegrity = plan ? assessPlanIntegrity(plan).lines : {};
     const metrics = plan
       ? computeMetrics({
@@ -192,7 +222,7 @@ export function PortalProvider({
       },
       memberById: (id) => roster.find((member) => member.id === id),
     };
-  }, [connectedItems, guideRoster, plan, snapshot.plaidConfigured, snapshot.viewer]);
+  }, [activity, connectedItems, guideRoster, plan, snapshot.plaidConfigured, snapshot.viewer]);
 
   return <PortalContext.Provider value={value}>{children}</PortalContext.Provider>;
 }

@@ -49,14 +49,14 @@ npm run lint
 | Role | Person | Email | Password | Lands on |
 | --- | --- | --- | --- | --- |
 | Member | Alex Rivera | alex@wealthcreators.test | Freedom-Alex-2026 | Dashboard |
-| Wealth Guide | Jordan Lee | jordan@wealthcreators.test | Freedom-Jordan-2026 | Roster |
+| Wealth Guide | Jordan Lee | jordan@wealthcreators.test | Freedom-Jordan-2026 | Command center |
 
 The accounts are created by `npm run db:seed` from `lib/demo-accounts.ts` and `lib/sample-data.ts`. Sign-up on `/signup` is branded and does not create a user.
 
 After sign-in:
 
-- Alex sees only the member shell: dashboard, goals, net worth, spending plan, milestones. The figures are Alex's plan in the database. Opening `/guide` returns to the dashboard.
-- Jordan sees the roster and each assigned member's progress. The assignment is the full sample roster, including Alex. Opening the member editor returns to the roster. The roster still omits institutions, account numbers, and transactions.
+- Alex sees only the member shell: dashboard, weekly check-in, Freedom Gap, goals, net worth, spending plan, milestones. The figures are Alex's plan in the database. Opening `/guide` returns to the dashboard.
+- Jordan sees the command center and each assigned member's progress. The assignment is the full sample roster, including Alex. Opening the member editor returns to the command center. The guide screens still omit institutions, account numbers, and transactions. Check-in answers are visible because the member wrote them for coaching.
 - Sign out clears the session and returns to `/login`.
 
 Edits to spending categories, balances, passive streams, and this-year steps are written to the database and stay after a refresh. **Reset demo data** restores the seeded plan and keeps Plaid connections. A member resets their own plan. Jordan resets every assigned member.
@@ -81,7 +81,9 @@ Tokens live as CSS variables in `app/globals.css` and are exposed to Tailwind.
 - **Spending plan** is the expense denominator. Categories are stored per member and are editable for the signed-in member.
 - **Goals** for Alex: two wealth goals and one personal goal, each with year-1 through year-6 checkpoints and this-year steps.
 - **Milestones / education** at Freedom Score bands 25, 50, 75, 100, and 125%.
-- **Guide roster** with filters: all, needs attention, goals behind, near the line, Freedom+. Member detail shows totals and goals only.
+- **Weekly check-in.** One reflection per member per America/Chicago week (Monday–Sunday). The home card asks for a check-in until this week is saved, then shows the summary. A later save in the same week updates that week.
+- **Guide command center** with explainable queues: asked for support, missed this week's check-in, Freedom Score down versus an earlier check-in snapshot, behind on goals, and recent progress. Member detail shows the check-in history. Guides can add a timestamped note and a small task. There is no daily score history, and goal steps have no due dates.
+- **Guide roster** with filters: all, needs attention, goals behind, near the line, Freedom+. Member detail shows totals, goals, and check-ins. It does not show bank names, masks, or Plaid tokens.
 - **Sessions** are httpOnly Auth.js JWTs. `proxy.ts` redirects anonymous visitors to `/login` and keeps each role inside its own routes. Server layouts check the session again.
 
 Sample passive income includes dividends, interest, net rent, and a royalty. Wages, asset sales, gifts, debt draws, and transfers do not count. Social Security, DRIP, and semi-passive business income are called out as configurable later and are excluded from the sample score.
@@ -131,7 +133,7 @@ Use the sandbox secret only. Do not put a development or production secret in th
 - **Invites.** Request access does not create a user. Only the seeded accounts can sign in. Other roster members have plans and password hashes, without a published password.
 - **Passive tags on synced accounts.** Plaid balances feed net worth and the yield denominator. They do not yet create passive income lines. The member still edits those streams by hand.
 - **Other members' line items.** Alex has the full sample categories. The rest of the roster is stored as spending, passive income, asset, and liability totals plus their goals, which is what the guide sees.
-- **Guide privacy.** Roster and member pages show aggregates and goals. They do not show institutions, account numbers, or transactions.
+- **Guide privacy.** Roster and member pages show aggregates, goals, and check-in answers. They do not show institutions, account numbers, masks, or transactions.
 - No Mighty Networks or Whop integration.
 
 ## Go live on Vercel

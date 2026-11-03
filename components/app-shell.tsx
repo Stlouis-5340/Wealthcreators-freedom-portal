@@ -10,6 +10,7 @@ import type { Role } from "@/lib/types";
 
 const memberNav = [
   { href: "/", label: "Dashboard" },
+  { href: "/check-in", label: "Check-in" },
   { href: "/gap", label: "Freedom Gap" },
   { href: "/goals", label: "Goals" },
   { href: "/assets", label: "Net Worth" },
@@ -17,7 +18,7 @@ const memberNav = [
   { href: "/milestones", label: "Milestones" },
 ];
 
-const guideNav = [{ href: "/guide", label: "Roster" }];
+const guideNav = [{ href: "/guide", label: "Command center" }];
 
 function navActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
@@ -109,9 +110,10 @@ export function AppShell({
           <p className="mt-12 max-w-3xl text-xs leading-5 text-muted">
             Seeded sample plan for the Wealth Creators demo, as of October 27, 2026.
             Edits are saved to the portal database. Plaid access tokens stay on the server,
-            and guides see totals only. Freedom Score, Freedom Gap, Freedom Quality, and yield
-            are educational planning tools, not investment advice. An assumed yield is an
-            illustration. Returns are not guaranteed.
+            and guides see totals and check-ins, not bank names or account numbers. Weekly
+            check-ins are coaching reflections. Freedom Score, Freedom Gap, Freedom Quality,
+            and yield are educational planning tools, not investment advice. An assumed yield
+            is an illustration. Returns are not guaranteed.
           </p>
         </main>
       </div>

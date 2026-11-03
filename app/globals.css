@@ -91,7 +91,8 @@ body {
   transform: none;
 }
 
-input[type="checkbox"] {
+input[type="checkbox"],
+input[type="radio"] {
   accent-color: #e8b84a;
 }
 

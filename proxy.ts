@@ -13,6 +13,8 @@ function isMemberPath(pathname: string): boolean {
     pathname === "/" ||
     pathname === "/gap" ||
     pathname.startsWith("/gap/") ||
+    pathname === "/check-in" ||
+    pathname.startsWith("/check-in/") ||
     pathname === "/goals" ||
     pathname.startsWith("/goals/") ||
     pathname === "/assets" ||

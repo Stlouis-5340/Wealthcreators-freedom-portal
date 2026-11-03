@@ -1,6 +1,7 @@
 import { prisma } from "../lib/db";
 import { hashPassword } from "../lib/passwords";
 import { replaceMemberPlan } from "../lib/plan-store";
+import { demoActivity } from "../lib/sample-activity";
 import { assignmentSeeds, guideSeed, memberSeeds } from "../lib/sample-plans";
 
 async function main() {
@@ -54,6 +55,58 @@ async function main() {
   const assignments = assignmentSeeds();
   await prisma.guideAssignment.deleteMany({ where: { guideId: guide.id } });
   await prisma.guideAssignment.createMany({ data: assignments });
+
+  const memberIds = memberSeeds().map((member) => member.id);
+  const activity = demoActivity();
+  await prisma.weeklyCheckIn.deleteMany({ where: { memberId: { in: memberIds } } });
+  await prisma.coachingNote.deleteMany({ where: { memberId: { in: memberIds } } });
+  await prisma.coachingTask.deleteMany({ where: { memberId: { in: memberIds } } });
+  if (activity.checkIns.length > 0) {
+    await prisma.weeklyCheckIn.createMany({
+      data: activity.checkIns.map((checkIn) => ({
+        id: checkIn.id,
+        memberId: checkIn.memberId,
+        weekKey: checkIn.weekKey,
+        win: checkIn.win,
+        challenge: checkIn.challenge,
+        actionStatus: checkIn.actionStatus,
+        commitment: checkIn.commitment,
+        needsSupport: checkIn.needsSupport,
+        supportNote: checkIn.supportNote,
+        summary: checkIn.summary,
+        freedomScore: checkIn.freedomScore,
+        monthlyFreedomGap: checkIn.monthlyFreedomGap,
+        qualityScore: checkIn.qualityScore,
+        submittedAt: new Date(checkIn.submittedAt),
+        updatedAt: new Date(checkIn.updatedAt),
+      })),
+    });
+  }
+  if (activity.notes.length > 0) {
+    await prisma.coachingNote.createMany({
+      data: activity.notes.map((note) => ({
+        id: note.id,
+        memberId: note.memberId,
+        guideId: note.guideId,
+        body: note.body,
+        createdAt: new Date(note.createdAt),
+      })),
+    });
+  }
+  if (activity.tasks.length > 0) {
+    await prisma.coachingTask.createMany({
+      data: activity.tasks.map((task) => ({
+        id: task.id,
+        memberId: task.memberId,
+        guideId: task.guideId,
+        title: task.title,
+        dueDate: task.dueDate,
+        status: task.status,
+        createdAt: new Date(task.createdAt),
+        updatedAt: new Date(task.updatedAt),
+      })),
+    });
+  }
 }
 
 main()
