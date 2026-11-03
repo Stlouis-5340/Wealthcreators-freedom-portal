@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { GuideCoachingReport } from "@/components/guide-coaching-report";
 import { MemberView } from "@/components/views/member-view";
 import { isMemberId, memberIds } from "@/lib/sample-data";
 
@@ -15,10 +16,17 @@ export function generateStaticParams() {
 
 export default async function Page({
   params,
+  searchParams,
 }: {
   params: Promise<{ memberId: string }>;
+  searchParams: Promise<{ month?: string }>;
 }) {
   const { memberId } = await params;
+  const { month } = await searchParams;
   if (!isMemberId(memberId)) notFound();
-  return <MemberView memberId={memberId} />;
+  return (
+    <MemberView memberId={memberId}>
+      <GuideCoachingReport memberId={memberId} monthKey={month ?? null} />
+    </MemberView>
+  );
 }

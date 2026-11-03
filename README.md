@@ -55,8 +55,8 @@ The accounts are created by `npm run db:seed` from `lib/demo-accounts.ts` and `l
 
 After sign-in:
 
-- Alex sees only the member shell: dashboard, weekly check-in, Freedom Gap, goals, net worth, spending plan, milestones. The figures are Alex's plan in the database. Opening `/guide` returns to the dashboard.
-- Jordan sees the command center and each assigned member's progress. The assignment is the full sample roster, including Alex. Opening the member editor returns to the command center. The guide screens still omit institutions, account numbers, and transactions. Check-in answers are visible because the member wrote them for coaching.
+- Alex sees only the member shell: dashboard, monthly Freedom Report, weekly check-in, Freedom Gap, goals, net worth, spending plan, milestones. The figures are Alex's plan in the database. Opening `/guide` returns to the dashboard. The home card opens the current month. Alex also has a saved prior month, so the report can show what moved.
+- Jordan sees the command center and each assigned member's progress. The assignment is the full sample roster, including Alex. Opening the member editor returns to the command center. Member detail includes that month's coaching report. The guide screens still omit institutions, account numbers, and transactions. Check-in answers are visible because the member wrote them for coaching.
 - Sign out clears the session and returns to `/login`.
 
 Edits to spending categories, balances, passive streams, and this-year steps are written to the database and stay after a refresh. **Reset demo data** restores the seeded plan and keeps Plaid connections. A member resets their own plan. Jordan resets every assigned member.
@@ -82,6 +82,7 @@ Tokens live as CSS variables in `app/globals.css` and are exposed to Tailwind.
 - **Goals** for Alex: two wealth goals and one personal goal, each with year-1 through year-6 checkpoints and this-year steps.
 - **Milestones / education** at Freedom Score bands 25, 50, 75, 100, and 125%.
 - **Weekly check-in.** One reflection per member per America/Chicago week (Monday–Sunday). The home card asks for a check-in until this week is saved, then shows the summary. A later save in the same week updates that week.
+- **Monthly Freedom Report.** One snapshot per member per America/Chicago month. Opening the current month saves it again from the plan. Earlier months stay as they were. Movement uses the prior month's report when one exists, otherwise a check-in from that month, and otherwise says First report. The three next steps are educational coaching, not investment advice. Print uses the browser's print dialog, including save as PDF. The link works only for that member, or for a Guide assigned to them. It is not a public page. Guides see the same month on the member page, plus the latest check-in and open task and note counts, still without bank names.
 - **Guide command center** with explainable queues: asked for support, missed this week's check-in, Freedom Score down versus an earlier check-in snapshot, behind on goals, and recent progress. Member detail shows the check-in history. Guides can add a timestamped note and a small task. There is no daily score history, and goal steps have no due dates.
 - **Guide roster** with filters: all, needs attention, goals behind, near the line, Freedom+. Member detail shows totals, goals, and check-ins. It does not show bank names, masks, or Plaid tokens.
 - **Sessions** are httpOnly Auth.js JWTs. `proxy.ts` redirects anonymous visitors to `/login` and keeps each role inside its own routes. Server layouts check the session again.

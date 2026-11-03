@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { CheckInCard } from "@/components/check-in-card";
+import { ReportCard } from "@/components/report-card";
 import { FreedomRing } from "@/components/freedom-ring";
 import { IntegrityBadge } from "@/components/integrity-badge";
 import { usePortal } from "@/components/portal-provider";
@@ -50,6 +51,8 @@ export function DashboardView() {
       </header>
 
       <CheckInCard />
+
+      <ReportCard />
 
       <section className="grid gap-4 lg:grid-cols-2">
         <article className="wc-card p-5 sm:p-6">

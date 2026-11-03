@@ -10,6 +10,7 @@ import type { Role } from "@/lib/types";
 
 const memberNav = [
   { href: "/", label: "Dashboard" },
+  { href: "/report", label: "Report" },
   { href: "/check-in", label: "Check-in" },
   { href: "/gap", label: "Freedom Gap" },
   { href: "/goals", label: "Goals" },
@@ -22,6 +23,7 @@ const guideNav = [{ href: "/guide", label: "Command center" }];
 
 function navActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
+  if (href === "/report") return pathname === "/report" || pathname.startsWith("/reports/");
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -67,7 +69,7 @@ export function AppShell({
       <a className="skip-link" href="#content">
         Skip to content
       </a>
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[280px] flex-col border-r border-line bg-surface lg:flex">
+      <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-[280px] flex-col border-r border-line bg-surface lg:flex">
         <div className="px-5 pt-6">
           <Link href={homeHref} className="block rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold">
             <BrandLogo className="h-auto w-full" priority />
@@ -90,8 +92,8 @@ export function AppShell({
         <AccountCard user={user} onReset={handleReset} />
       </aside>
 
-      <div className="lg:pl-[280px]">
-        <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-line bg-background/95 px-4 py-3 backdrop-blur lg:hidden">
+        <div className="portal-main lg:pl-[280px]">
+        <header className="no-print sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-line bg-background/95 px-4 py-3 backdrop-blur lg:hidden">
           <Link href={homeHref} className="min-w-0">
             <BrandLogo className="h-[72px] w-auto" priority />
           </Link>
@@ -107,19 +109,20 @@ export function AppShell({
         </header>
         <main id="content" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-10 lg:py-10">
           {children}
-          <p className="mt-12 max-w-3xl text-xs leading-5 text-muted">
+          <p className="no-print mt-12 max-w-3xl text-xs leading-5 text-muted">
             Seeded sample plan for the Wealth Creators demo, as of October 27, 2026.
             Edits are saved to the portal database. Plaid access tokens stay on the server,
-            and guides see totals and check-ins, not bank names or account numbers. Weekly
-            check-ins are coaching reflections. Freedom Score, Freedom Gap, Freedom Quality,
-            and yield are educational planning tools, not investment advice. An assumed yield
-            is an illustration. Returns are not guaranteed.
+            and guides see totals, check-ins, and the monthly coaching report, not bank names
+            or account numbers. Weekly check-ins and the Freedom Report are coaching tools.
+            Freedom Score, Freedom Gap, Freedom Quality, and yield are educational planning
+            tools, not investment advice. An assumed yield is an illustration. Returns are not
+            guaranteed.
           </p>
         </main>
       </div>
 
       {menuOpen ? (
-        <div className="fixed inset-0 z-40 lg:hidden">
+        <div className="no-print fixed inset-0 z-40 lg:hidden">
           <button
             type="button"
             className="absolute inset-0 bg-black/70"

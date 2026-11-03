@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { GoalCard } from "@/components/goal-card";
 import { GuideMemberTools } from "@/components/guide-member-tools";
 import { IntegrityBadge } from "@/components/integrity-badge";
@@ -10,7 +11,13 @@ import { StatusPills } from "@/components/status-pill";
 import { formatDate, formatMoney, formatPercentOrDash, relativeDay } from "@/lib/format";
 import type { DataIntegrity } from "@/lib/integrity";
 
-export function MemberView({ memberId }: { memberId: string }) {
+export function MemberView({
+  memberId,
+  children,
+}: {
+  memberId: string;
+  children?: ReactNode;
+}) {
   const { memberById } = usePortal();
   const member = memberById(memberId);
 
@@ -48,9 +55,9 @@ export function MemberView({ memberId }: { memberId: string }) {
       </div>
 
       <p className="rounded-2xl border border-gold-muted/40 bg-surface px-4 py-3 text-sm leading-6 text-muted">
-        Guides see the plan, the progress, the Freedom Gap, Freedom Quality, and weekly
-        check-ins. This view has no bank logins, account numbers, institution names, or
-        transactions.
+        Guides see the plan, the progress, the Freedom Gap, Freedom Quality, weekly
+        check-ins, and the monthly coaching report. This view has no bank logins,
+        account numbers, institution names, or transactions.
       </p>
 
       <p className="max-w-3xl text-sm leading-6 text-ink">{member.coachingNote}</p>
@@ -85,6 +92,8 @@ export function MemberView({ memberId }: { memberId: string }) {
         />
         <Stat label="6-year Freedom goal" value={`${Math.round(member.sixYearProgress)}%`} />
       </section>
+
+      {children}
 
       <GuideMemberTools memberId={member.id} />
 

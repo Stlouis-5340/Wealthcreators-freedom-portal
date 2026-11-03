@@ -1,7 +1,9 @@
 import { prisma } from "../lib/db";
 import { hashPassword } from "../lib/passwords";
 import { replaceMemberPlan } from "../lib/plan-store";
+import { encodeReportJson } from "../lib/report";
 import { demoActivity } from "../lib/sample-activity";
+import { alexPriorReport } from "../lib/sample-reports";
 import { assignmentSeeds, guideSeed, memberSeeds } from "../lib/sample-plans";
 
 async function main() {
@@ -107,6 +109,28 @@ async function main() {
       })),
     });
   }
+
+  const prior = alexPriorReport();
+  const encoded = encodeReportJson(prior);
+  await prisma.monthlyReport.deleteMany({ where: { memberId: { in: memberIds } } });
+  await prisma.monthlyReport.create({
+    data: {
+      id: `alex-${prior.monthKey}`,
+      memberId: "alex",
+      monthKey: prior.monthKey,
+      freedomScore: prior.freedomScore,
+      gap: prior.gap,
+      quality: prior.quality,
+      passive: prior.passive,
+      expenses: prior.expenses,
+      netWorth: prior.netWorth,
+      yieldOnAssets: prior.yieldOnAssets,
+      goalsSummary: encoded.goalsSummary,
+      milestones: encoded.milestones,
+      actions: encoded.actions,
+      generatedAt: new Date(prior.generatedAt),
+    },
+  });
 }
 
 main()
