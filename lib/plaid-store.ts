@@ -43,10 +43,12 @@ export async function saveSyncedItem(input: {
         accessTokenEnc: input.accessTokenEnc ?? "",
         institutionId,
         institutionName,
+        refreshedAt: new Date(),
       },
       update: {
         institutionId,
         institutionName,
+        refreshedAt: new Date(),
         ...(input.accessTokenEnc ? { accessTokenEnc: input.accessTokenEnc } : {}),
       },
     });
@@ -125,6 +127,8 @@ async function upsertAccount(
         group: assetGroupForType(type),
         balance,
         sort: input.sort,
+        valuation: "verified",
+        confirmedAt: null,
       },
       update: {
         memberId: input.memberId,
@@ -132,6 +136,8 @@ async function upsertAccount(
         institution: input.institutionName,
         group: assetGroupForType(type),
         balance,
+        valuation: "verified",
+        confirmedAt: null,
       },
     });
   }

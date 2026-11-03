@@ -1,3 +1,4 @@
+import { freedomScorePercent, monthlyFreedomGap } from "./gap";
 import { AS_OF_YEAR, clamp, formatMoney, formatPercentOrDash, sum } from "./format";
 import type {
   CheckpointStatus,
@@ -22,15 +23,13 @@ export function computeMetrics(input: {
     totalAssets: input.totalAssets,
     totalLiabilities: input.totalLiabilities,
     netWorth,
-    freedomScore:
-      input.monthlyExpenses > 0
-        ? (input.monthlyPassive / input.monthlyExpenses) * 100
-        : null,
+    freedomScore: freedomScorePercent(input.monthlyPassive, input.monthlyExpenses),
     yieldOnAssets:
       input.totalAssets > 0 ? (annualPassive / input.totalAssets) * 100 : null,
     yieldOnNetWorth:
       netWorth > 0 ? (annualPassive / netWorth) * 100 : null,
     monthlySurplus: input.monthlyPassive - input.monthlyExpenses,
+    monthlyFreedomGap: monthlyFreedomGap(input.monthlyExpenses, input.monthlyPassive),
   };
 }
 

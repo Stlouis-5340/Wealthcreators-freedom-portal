@@ -5,6 +5,7 @@ import {
   loadPortalSnapshot,
   resetSeededPlans,
   setMemberStep,
+  setAssetValuation,
   updateMemberAmount,
 } from "@/lib/plan-store";
 import { nonNegative } from "@/lib/plans";
@@ -48,6 +49,15 @@ export async function updateAssetAction(lineId: string, balance: number) {
     lineId,
     amount: nonNegative(balance),
   });
+}
+
+export async function setAssetValuationAction(
+  lineId: string,
+  valuation: "estimated" | "verified",
+) {
+  const user = await memberSession();
+  if (!user) return;
+  await setAssetValuation({ memberId: user.id, lineId, valuation });
 }
 
 export async function updateLiabilityAction(lineId: string, balance: number) {

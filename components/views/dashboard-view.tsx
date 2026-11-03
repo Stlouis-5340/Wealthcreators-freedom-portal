@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { FreedomRing } from "@/components/freedom-ring";
+import { IntegrityBadge } from "@/components/integrity-badge";
 import { usePortal } from "@/components/portal-provider";
+import { QualityChips } from "@/components/quality-panel";
 import { StatusPills } from "@/components/status-pill";
 import { formatMoney, formatPercentOrDash } from "@/lib/format";
+import type { DataIntegrity } from "@/lib/integrity";
 import { passiveNeededFor } from "@/lib/metrics";
 import { stageCopy, stageFor, stageTitle } from "@/lib/milestones";
 import { GUIDE } from "@/lib/sample-data";
@@ -28,6 +31,9 @@ export function DashboardView() {
   const preview = ordered.slice(0, 5);
   const maxBar = Math.max(metrics.monthlyPassive, metrics.monthlyExpenses, 1);
   const covered = metrics.monthlySurplus >= 0;
+  const integrity = alex?.integrity;
+  const quality = alex?.quality;
+  const label = (status: DataIntegrity | undefined) => status ?? "missing";
 
   return (
     <div className="space-y-6">
@@ -44,7 +50,10 @@ export function DashboardView() {
 
       <section className="grid gap-4 lg:grid-cols-2">
         <article className="wc-card p-5 sm:p-6">
-          <p className="wc-eyebrow">Freedom Score</p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="wc-eyebrow">Freedom Score</p>
+            <IntegrityBadge status={label(integrity?.freedomScore)} />
+          </div>
           <div className="mt-4 flex flex-col items-center gap-5 sm:flex-row sm:items-center">
             <FreedomRing score={metrics.freedomScore} />
             <div className="min-w-0 text-center sm:text-left">
@@ -78,12 +87,15 @@ export function DashboardView() {
         <article className="wc-card p-5 sm:p-6">
           <div className="flex items-center justify-between gap-3">
             <p className="wc-eyebrow">Yield on assets</p>
-            <span className="rounded-full border border-gold/40 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-gold">
-              Primary
+            <span className="flex items-center gap-2">
+              <IntegrityBadge status={label(integrity?.yieldOnAssets)} />
+              <span className="rounded-full border border-gold/40 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-gold">
+                Primary
+              </span>
             </span>
           </div>
           <p className="mt-4 text-5xl font-semibold tracking-tight text-ink">
-            {formatPercentOrDash(metrics.yieldOnAssets, 2)}
+            {integrity?.yieldOnAssets === "missing" ? "—" : formatPercentOrDash(metrics.yieldOnAssets, 2)}
           </p>
           <p className="mt-3 text-sm leading-6 text-muted">
             Annual passive income divided by everything you own. This is the headline yield.
@@ -91,12 +103,22 @@ export function DashboardView() {
           </p>
           <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-xl bg-surface-raised px-3 py-3">
-              <dt className="text-muted">Annual passive</dt>
-              <dd className="mt-1 text-base text-ink">{formatMoney(metrics.annualPassive)}</dd>
+              <dt className="flex items-center justify-between gap-2 text-muted">
+                Annual passive
+                <IntegrityBadge status={label(integrity?.annualPassive)} />
+              </dt>
+              <dd className="mt-1 text-base text-ink">
+                {integrity?.annualPassive === "missing" ? "—" : formatMoney(metrics.annualPassive)}
+              </dd>
             </div>
             <div className="rounded-xl bg-surface-raised px-3 py-3">
-              <dt className="text-muted">Total assets</dt>
-              <dd className="mt-1 text-base text-ink">{formatMoney(metrics.totalAssets)}</dd>
+              <dt className="flex items-center justify-between gap-2 text-muted">
+                Total assets
+                <IntegrityBadge status={label(integrity?.totalAssets)} />
+              </dt>
+              <dd className="mt-1 text-base text-ink">
+                {integrity?.totalAssets === "missing" ? "—" : formatMoney(metrics.totalAssets)}
+              </dd>
             </div>
           </dl>
           <details className="mt-4 text-sm text-muted">
@@ -110,10 +132,60 @@ export function DashboardView() {
         </article>
       </section>
 
+      <section className="grid gap-4 lg:grid-cols-2">
+        <article className="wc-card p-5 sm:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <p className="wc-eyebrow">Freedom Gap</p>
+            <IntegrityBadge status={label(integrity?.freedomGap)} />
+          </div>
+          <p className="mt-4 text-5xl font-semibold tracking-tight text-ink">
+            {integrity?.freedomGap === "missing" ? "—" : formatMoney(metrics.monthlyFreedomGap)}
+          </p>
+          <p className="mt-1 text-sm text-muted">per month</p>
+          <p className="mt-4 text-sm leading-6 text-ink">
+            Freedom Score{" "}
+            <span className="font-medium">{formatPercentOrDash(metrics.freedomScore, 1)}</span>
+            <span className="ml-2 inline-flex align-middle">
+              <IntegrityBadge status={label(integrity?.freedomScore)} />
+            </span>
+          </p>
+          <p className="mt-3 text-sm leading-6 text-muted">
+            Monthly Freedom Gap is the spending plan minus qualifying passive income, and it never
+            goes below zero.
+            {metrics.monthlyFreedomGap === 0
+              ? " The plan is covered. Freedom Quality asks whether that coverage is durable."
+              : ` ${formatMoney(metrics.monthlyFreedomGap)} of the plan is not covered by passive income yet.`}
+          </p>
+          <Link href="/gap" className="mt-4 inline-block text-sm text-gold-muted hover:text-gold">
+            Open the Freedom Gap analyzer
+          </Link>
+        </article>
+
+        <article className="wc-card p-5 sm:p-6">
+          <p className="wc-eyebrow">Freedom Quality</p>
+          <p className="mt-4 text-5xl font-semibold tracking-tight text-ink">
+            {quality?.score == null ? "—" : quality.score}
+            <span className="ml-1 text-lg font-medium text-muted">/ 100</span>
+          </p>
+          <p className="mt-3 text-sm leading-6 text-muted">
+            {quality == null
+              ? "Quality reads the plan already on file. It does not replace Freedom Score."
+              : `${Math.round(quality.confidence * 100)}% of the model had enough plan data. Held-out factors are limited data, not zeros.`}
+          </p>
+          <div className="mt-4">
+            <QualityChips chips={quality?.chips ?? []} />
+          </div>
+          <Link href="/gap#quality" className="mt-4 inline-block text-sm text-gold-muted hover:text-gold">
+            See why this score landed here
+          </Link>
+        </article>
+      </section>
+
       <section className="grid gap-4 md:grid-cols-3">
         <Snapshot
           label="Net worth"
           value={formatMoney(metrics.netWorth)}
+          status={label(integrity?.netWorth)}
           detail={`${formatMoney(metrics.totalAssets)} assets − ${formatMoney(metrics.totalLiabilities)} liabilities`}
           href="/assets"
           hrefLabel="Open balance sheet"
@@ -121,6 +193,7 @@ export function DashboardView() {
         <Snapshot
           label="Passive income"
           value={formatMoney(metrics.monthlyPassive)}
+          status={label(integrity?.passiveIncome)}
           detail="Per month, from tagged streams only"
           href="/assets"
           hrefLabel="Edit streams"
@@ -128,6 +201,7 @@ export function DashboardView() {
         <Snapshot
           label="Spending plan"
           value={formatMoney(metrics.monthlyExpenses)}
+          status={label(integrity?.spendingPlan)}
           detail="Per month. This is the Freedom Score denominator."
           href="/spending"
           hrefLabel="Edit the plan"
@@ -230,17 +304,24 @@ function Snapshot({
   detail,
   href,
   hrefLabel,
+  status,
 }: {
   label: string;
   value: string;
   detail: string;
   href: string;
   hrefLabel: string;
+  status: DataIntegrity;
 }) {
   return (
     <article className="wc-card p-5">
-      <p className="wc-eyebrow">{label}</p>
-      <p className="mt-3 text-2xl font-semibold tracking-tight text-ink">{value}</p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="wc-eyebrow">{label}</p>
+        <IntegrityBadge status={status} />
+      </div>
+      <p className="mt-3 text-2xl font-semibold tracking-tight text-ink">
+        {status === "missing" ? "—" : value}
+      </p>
       <p className="mt-2 text-sm leading-6 text-muted">{detail}</p>
       <Link href={href} className="mt-3 inline-block text-sm text-gold-muted hover:text-gold">
         {hrefLabel}

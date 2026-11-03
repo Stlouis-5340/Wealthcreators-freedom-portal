@@ -66,12 +66,20 @@ export interface PassiveStream {
   source: string;
 }
 
+export type ManualValuation = "estimated" | "verified";
+
 export interface AssetLine {
   id: string;
   name: string;
   institution: string;
   group: "Cash" | "Investments" | "Property" | "Retirement";
   balance: number;
+  /** Manual flag. Connected lines are labeled from refreshedAt instead. */
+  valuation?: ManualValuation;
+  /** ISO time the member last confirmed a manual balance. */
+  confirmedAt?: string | null;
+  /** ISO time of the last connected refresh, when this line came from Plaid. */
+  refreshedAt?: string | null;
 }
 
 export interface LiabilityLine {
@@ -79,6 +87,8 @@ export interface LiabilityLine {
   name: string;
   balance: number;
   note: string;
+  /** ISO time of the last connected refresh, when this line came from Plaid. */
+  refreshedAt?: string | null;
 }
 
 export interface Metrics {
@@ -92,4 +102,6 @@ export interface Metrics {
   yieldOnAssets: number | null;
   yieldOnNetWorth: number | null;
   monthlySurplus: number;
+  /** max(0, monthly expenses − monthly qualifying passive income). */
+  monthlyFreedomGap: number;
 }

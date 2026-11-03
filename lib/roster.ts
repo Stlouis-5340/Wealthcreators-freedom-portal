@@ -1,6 +1,8 @@
 import { daysSince } from "./format";
+import { assessPlanIntegrity, type IntegritySummary } from "./integrity";
 import { freedomProgress, resolveGoals, stepTotals, totalsFromLines } from "./metrics";
 import type { StoredMemberPlan } from "./plans";
+import { assessFreedomQuality, type FreedomQuality } from "./quality";
 import type { Metrics, ResolvedGoal } from "./types";
 
 export interface MemberFlags {
@@ -28,6 +30,8 @@ export interface RosterRow {
   flags: MemberFlags;
   statuses: StatusLabel[];
   goals: ResolvedGoal[];
+  integrity: IntegritySummary;
+  quality: FreedomQuality;
 }
 
 export function flagsFor(input: {
@@ -64,6 +68,8 @@ function rowFrom(input: {
   coachingNote: string;
   metrics: Metrics;
   goals: ResolvedGoal[];
+  integrity: IntegritySummary;
+  quality: FreedomQuality;
 }): RosterRow {
   const steps = stepTotals(input.goals);
   const sixYearProgress = freedomProgress(input.goals);
@@ -88,6 +94,8 @@ function rowFrom(input: {
     flags,
     statuses: statusLabels(flags),
     goals: input.goals,
+    integrity: input.integrity,
+    quality: input.quality,
   };
 }
 
@@ -117,6 +125,8 @@ export function memberRow(plan: StoredMemberPlan): RosterRow {
     coachingNote: plan.coachingNote,
     metrics,
     goals,
+    integrity: assessPlanIntegrity(plan).summary,
+    quality: assessFreedomQuality(plan),
   });
   if (!plan.coachingNote.trim()) {
     row.coachingNote = coachingNoteFromOpenSteps(row);

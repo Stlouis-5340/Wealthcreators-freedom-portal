@@ -44,7 +44,7 @@ export function RosterView() {
       <PageHeader
         eyebrow={`${GUIDE.name} · Wealth Guide`}
         title="Member roster"
-        lede="Freedom Score, the six-year Freedom goal, this-year steps, and net worth. No bank credentials and no transactions."
+        lede="Freedom Score, Freedom Gap, Freedom Quality, the six-year goal, this-year steps, and net worth. No bank credentials, account numbers, or transactions."
       />
 
       <div className="flex flex-wrap gap-2">
@@ -122,8 +122,13 @@ export function RosterView() {
                   </div>
                   <StatusPills statuses={row.statuses} />
                 </div>
-                <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                   <Metric label="Freedom Score" value={formatPercentOrDash(row.metrics.freedomScore, 1)} />
+                  <Metric label="Freedom Gap" value={formatMoney(row.metrics.monthlyFreedomGap)} />
+                  <Metric
+                    label="Quality"
+                    value={row.quality.score == null ? "—" : `${row.quality.score}/100`}
+                  />
                   <Metric label="Yield on assets" value={formatPercentOrDash(row.metrics.yieldOnAssets, 2)} />
                   <Metric label="6-year goal" value={`${Math.round(row.sixYearProgress)}%`} />
                   <Metric label="This year" value={`${row.stepsDone}/${row.stepsTotal}`} />

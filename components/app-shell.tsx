@@ -10,6 +10,7 @@ import type { Role } from "@/lib/types";
 
 const memberNav = [
   { href: "/", label: "Dashboard" },
+  { href: "/gap", label: "Freedom Gap" },
   { href: "/goals", label: "Goals" },
   { href: "/assets", label: "Net Worth" },
   { href: "/spending", label: "Spending Plan" },
@@ -108,8 +109,9 @@ export function AppShell({
           <p className="mt-12 max-w-3xl text-xs leading-5 text-muted">
             Seeded sample plan for the Wealth Creators demo, as of October 27, 2026.
             Edits are saved to the portal database. Plaid access tokens stay on the server,
-            and guides see totals only. Freedom Score and yield are planning tools, not
-            investment advice.
+            and guides see totals only. Freedom Score, Freedom Gap, Freedom Quality, and yield
+            are educational planning tools, not investment advice. An assumed yield is an
+            illustration. Returns are not guaranteed.
           </p>
         </main>
       </div>
