@@ -34,6 +34,7 @@ model User {
   notesWritten  CoachingNote[]    @relation("NoteGuide")
   tasksAbout    CoachingTask[]    @relation("TaskMember")
   tasksAssigned CoachingTask[]    @relation("TaskGuide")
+  reports       MonthlyReport[]
 }
 
 model GuideAssignment {
@@ -232,4 +233,29 @@ model CoachingTask {
   @@index([memberId])
   @@index([guideId])
   @@index([status])
+}
+
+/// One Freedom Report per member per America/Chicago calendar month.
+/// monthKey is YYYY-MM. Opening the current month refreshes this row.
+/// goalsSummary, milestones, and actions are JSON text.
+model MonthlyReport {
+  id            String   @id @default(cuid())
+  memberId      String
+  member        User     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  monthKey      String
+  freedomScore  Float?
+  gap           Float?
+  quality       Float?
+  passive       Float?
+  expenses      Float?
+  netWorth      Float?
+  yieldOnAssets Float?
+  goalsSummary  String
+  milestones    String
+  actions       String
+  generatedAt   DateTime @default(now())
+
+  @@unique([memberId, monthKey])
+  @@index([memberId])
+  @@index([monthKey])
 }

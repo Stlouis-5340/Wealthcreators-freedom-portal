@@ -22,7 +22,9 @@ function isMemberPath(pathname: string): boolean {
     pathname === "/spending" ||
     pathname.startsWith("/spending/") ||
     pathname === "/milestones" ||
-    pathname.startsWith("/milestones/")
+    pathname.startsWith("/milestones/") ||
+    pathname === "/report" ||
+    /^\/reports\/\d{4}-\d{2}$/.test(pathname)
   );
 }
 
@@ -37,6 +39,14 @@ export const proxy = auth((req) => {
     login.pathname = "/login";
     login.search = "";
     return NextResponse.redirect(login);
+  }
+
+  const monthOnly = pathname.match(/^\/reports\/(\d{4}-\d{2})$/);
+  if (monthOnly && role === "member" && req.auth?.user?.id) {
+    const destination = req.nextUrl.clone();
+    destination.pathname = `/reports/${req.auth.user.id}/${monthOnly[1]}`;
+    destination.search = "";
+    return NextResponse.redirect(destination);
   }
 
   const home = homeForRole(role);

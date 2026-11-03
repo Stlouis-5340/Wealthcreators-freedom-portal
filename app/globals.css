@@ -103,3 +103,61 @@ input[type="number"] {
 input[type="range"] {
   accent-color: #e8b84a;
 }
+
+@media print {
+  .no-print,
+  .skip-link {
+    display: none !important;
+  }
+
+  .portal-main {
+    padding-left: 0 !important;
+  }
+
+  body {
+    background: #fff !important;
+    color: #1a1a1a !important;
+  }
+
+  .wc-card,
+  .bg-surface,
+  .bg-surface-raised,
+  .bg-background {
+    background: #fff !important;
+    border-color: #d4d4d4 !important;
+    box-shadow: none !important;
+  }
+
+  .text-ink,
+  .text-muted,
+  h1,
+  h2,
+  h3,
+  h4,
+  p,
+  li,
+  dd,
+  dt {
+    color: #1a1a1a !important;
+  }
+
+  .text-gold,
+  .text-gold-muted,
+  .wc-eyebrow {
+    color: #8a6a1f !important;
+  }
+
+  .text-success {
+    color: #1f7a3a !important;
+  }
+
+  .text-warning {
+    color: #8a5a12 !important;
+  }
+
+  #freedom-report .wc-card,
+  #freedom-report section,
+  #freedom-report li {
+    break-inside: avoid;
+  }
+}
