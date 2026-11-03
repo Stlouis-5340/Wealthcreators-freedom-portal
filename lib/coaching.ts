@@ -16,6 +16,8 @@ export interface CoachingTaskView {
   title: string;
   dueDate: string;
   status: TaskStatus;
+  /** Who added the item. Either person can mark it done. */
+  source: "guide" | "member";
   createdAt: string;
   updatedAt: string;
 }
@@ -73,6 +75,7 @@ export function toTaskView(row: {
   title: string;
   dueDate: string;
   status: string;
+  source?: string;
   createdAt: Date | string;
   updatedAt: Date | string;
 }): CoachingTaskView {
@@ -83,6 +86,7 @@ export function toTaskView(row: {
     title: row.title,
     dueDate: row.dueDate,
     status: isTaskStatus(row.status) ? row.status : "open",
+    source: row.source === "member" ? "member" : "guide",
     createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt,
     updatedAt: row.updatedAt instanceof Date ? row.updatedAt.toISOString() : row.updatedAt,
   };

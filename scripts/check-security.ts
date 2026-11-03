@@ -9,7 +9,13 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
 
-const toggles = accessFromMemberToggles({ score: false, totals: true, goals: false, checkIns: true });
+const toggles = accessFromMemberToggles({
+  score: false,
+  totals: true,
+  goals: false,
+  checkIns: true,
+  education: true,
+});
 assert(toggles.tasks === true, "tasks stay on when a member saves visibility");
 assert(serializeGuideAccess(toggles).includes('"tasks":true'), "saved scopes keep tasks on");
 const parsed = parseGuideAccess(serializeGuideAccess({ ...fullGuideAccess, score: false, checkIns: false }));
@@ -77,6 +83,7 @@ const hidden = applyGuideAccess(memberRow(plan), {
   goals: false,
   checkIns: false,
   tasks: false,
+  education: false,
 });
 const payload = JSON.stringify(hidden);
 assert(!payload.includes(String(plan.assets[0]?.balance)), "hidden roster omits an asset balance");

@@ -1,4 +1,6 @@
 import { fullGuideAccess, type GuideAccess } from "@/lib/access";
+import { educationSnapshot } from "@/lib/education-store";
+import { hiddenEducationProgress, type EducationProgressView } from "@/lib/education";
 import { guideAssigned } from "@/lib/activity-store";
 import { writeAudit } from "@/lib/audit";
 import { activeGuideAccess } from "@/lib/grants";
@@ -16,7 +18,6 @@ import { storedPlanForMember } from "@/lib/plan-store";
 import {
   buildMonthlyReportDraft,
   deltasFor,
-  EDUCATION_PLACEHOLDER,
   EDUCATIONAL_LABEL,
   encodeReportJson,
   parseActions,
@@ -70,7 +71,7 @@ export interface FreedomReportModel {
   goals: GoalSummaryItem[];
   milestones: MilestonesPayload;
   actions: ReportAction[];
-  educationNote: string;
+  education: EducationProgressView;
   guidance: string;
   months: MonthLink[];
   isCurrent: boolean;
@@ -249,7 +250,7 @@ export async function loadMonthlyReport(input: {
     goals: parseGoalsSummary(row.goalsSummary),
     milestones: parseMilestones(row.milestones),
     actions: parseActions(row.actions),
-    educationNote: EDUCATION_PLACEHOLDER,
+    education: await educationSnapshot(input.memberId),
     guidance: EDUCATIONAL_LABEL,
     months,
     isCurrent: row.monthKey === currentKey,
@@ -337,6 +338,7 @@ function redactGuideReport(model: FreedomReportModel, access: GuideAccess): Free
           : "Milestones that name a score or a goal are not shared.",
     },
     actions: shareActions ? model.actions : [],
+    education: access.education ? model.education : hiddenEducationProgress(),
     coaching: model.coaching
       ? {
           latest: access.checkIns ? model.coaching.latest : null,
