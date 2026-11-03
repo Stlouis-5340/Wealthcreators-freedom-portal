@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { GoalCard } from "@/components/goal-card";
+import { GuideMemberTools } from "@/components/guide-member-tools";
 import { IntegrityBadge } from "@/components/integrity-badge";
 import { usePortal } from "@/components/portal-provider";
 import { QualityPanel } from "@/components/quality-panel";
@@ -18,7 +19,7 @@ export function MemberView({ memberId }: { memberId: string }) {
       <section className="wc-card max-w-xl p-6">
         <h1 className="text-2xl font-semibold">Member not on this roster</h1>
         <Link href="/guide" className="mt-4 inline-block text-sm text-gold-muted hover:text-gold">
-          Back to roster
+          Back to command center
         </Link>
       </section>
     );
@@ -32,7 +33,7 @@ export function MemberView({ memberId }: { memberId: string }) {
     <div className="space-y-8">
       <div>
         <Link href="/guide" className="text-sm text-gold-muted hover:text-gold">
-          Back to roster
+          Back to command center
         </Link>
         <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -47,8 +48,9 @@ export function MemberView({ memberId }: { memberId: string }) {
       </div>
 
       <p className="rounded-2xl border border-gold-muted/40 bg-surface px-4 py-3 text-sm leading-6 text-muted">
-        Guides see the plan, the progress, the Freedom Gap, and Freedom Quality. This view has
-        no bank logins, account numbers, institution names, or transactions.
+        Guides see the plan, the progress, the Freedom Gap, Freedom Quality, and weekly
+        check-ins. This view has no bank logins, account numbers, institution names, or
+        transactions.
       </p>
 
       <p className="max-w-3xl text-sm leading-6 text-ink">{member.coachingNote}</p>
@@ -83,6 +85,8 @@ export function MemberView({ memberId }: { memberId: string }) {
         />
         <Stat label="6-year Freedom goal" value={`${Math.round(member.sixYearProgress)}%`} />
       </section>
+
+      <GuideMemberTools memberId={member.id} />
 
       <section className="wc-card p-5 sm:p-6">
         <p className="wc-eyebrow">Passive income and the plan</p>

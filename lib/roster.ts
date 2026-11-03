@@ -3,6 +3,8 @@ import { assessPlanIntegrity, type IntegritySummary } from "./integrity";
 import { freedomProgress, resolveGoals, stepTotals, totalsFromLines } from "./metrics";
 import type { StoredMemberPlan } from "./plans";
 import { assessFreedomQuality, type FreedomQuality } from "./quality";
+import type { WeeklyCheckInView } from "./check-in";
+import type { CoachingNoteView, CoachingTaskView } from "./coaching";
 import type { Metrics, ResolvedGoal } from "./types";
 
 export interface MemberFlags {
@@ -32,6 +34,9 @@ export interface RosterRow {
   goals: ResolvedGoal[];
   integrity: IntegritySummary;
   quality: FreedomQuality;
+  checkIns: WeeklyCheckInView[];
+  notes: CoachingNoteView[];
+  tasks: CoachingTaskView[];
 }
 
 export function flagsFor(input: {
@@ -96,6 +101,9 @@ function rowFrom(input: {
     goals: input.goals,
     integrity: input.integrity,
     quality: input.quality,
+    checkIns: [],
+    notes: [],
+    tasks: [],
   };
 }
 

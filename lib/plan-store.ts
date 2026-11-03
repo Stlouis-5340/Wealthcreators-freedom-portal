@@ -1,7 +1,9 @@
 import type { Prisma } from "@prisma/client";
+import { toCheckInView, type WeeklyCheckInView } from "@/lib/check-in";
+import { toNoteView, toTaskView, type CoachingNoteView, type CoachingTaskView } from "@/lib/coaching";
 import { prisma } from "@/lib/db";
 import { isPlaidConfigured } from "@/lib/plaid-config";
-import { memberRow } from "@/lib/roster";
+import { memberRow, type RosterRow } from "@/lib/roster";
 import { memberSeeds, type SeedPlan } from "@/lib/sample-plans";
 import {
   guideSignature,
@@ -13,6 +15,12 @@ import {
   type StoredMemberPlan,
 } from "@/lib/plans";
 import type { Role } from "@/lib/types";
+
+interface PortalActivity {
+  checkIns: WeeklyCheckInView[];
+  notes: CoachingNoteView[];
+  tasks: CoachingTaskView[];
+}
 
 const planInclude = {
   expenses: { orderBy: { sort: "asc" } },
@@ -154,23 +162,68 @@ function snapshotFor(
   plan: StoredMemberPlan | null,
   rosterPlans: StoredMemberPlan[],
   connectedItems: ConnectedItem[],
+  activity: PortalActivity,
 ): PortalSnapshot {
+  const roster = rosterPlans.map(memberRow).map((row) =>
+    withActivity(row, activity, viewer.role === "guide"),
+  );
   const signatureBase = viewer.role === "guide" ? guideSignature(rosterPlans) : planSignature(rosterPlans);
   const snapshot = toClient({
     viewer,
     plan,
-    roster: rosterPlans.map(memberRow),
+    roster,
     plaidConfigured: isPlaidConfigured(),
     connectedItems,
-    signature: `${signatureBase}#${viewer.role === "guide" ? "" : connectionSignature(connectedItems)}`,
+    signature: `${signatureBase}#${viewer.role === "guide" ? "" : connectionSignature(connectedItems)}#${activitySignature(roster)}`,
   });
   assertSnapshotPrivacy(snapshot);
   return snapshot;
 }
 
+function withActivity(row: RosterRow, activity: PortalActivity, includeCoaching: boolean): RosterRow {
+  return {
+    ...row,
+    checkIns: activity.checkIns.filter((checkIn) => checkIn.memberId === row.id),
+    notes: includeCoaching ? activity.notes.filter((note) => note.memberId === row.id) : [],
+    tasks: includeCoaching ? activity.tasks.filter((task) => task.memberId === row.id) : [],
+  };
+}
+
+function activitySignature(rows: RosterRow[]): string {
+  return rows
+    .map((row) =>
+      [
+        row.id,
+        row.checkIns
+          .map((checkIn) => `${checkIn.id}:${checkIn.weekKey}:${checkIn.updatedAt}:${checkIn.actionStatus}:${checkIn.needsSupport}`)
+          .join(","),
+        row.notes.map((note) => note.id).join(","),
+        row.tasks.map((task) => `${task.id}:${task.status}:${task.dueDate}:${task.title}`).join(","),
+      ].join("|"),
+    )
+    .join("||");
+}
+
 function assertSnapshotPrivacy(snapshot: PortalSnapshot): void {
-  const json = JSON.stringify(snapshot);
-  if (json.includes("accessToken") || json.includes("access_token") || json.includes("passwordHash")) {
+  const structural = JSON.stringify({
+    plan: snapshot.plan,
+    connectedItems: snapshot.connectedItems,
+    roster: snapshot.roster.map((row) => ({
+      id: row.id,
+      name: row.name,
+      coachingNote: row.coachingNote,
+      metrics: row.metrics,
+      goals: row.goals,
+      integrity: row.integrity,
+      quality: row.quality,
+      statuses: row.statuses,
+    })),
+  });
+  if (
+    structural.includes("accessToken") ||
+    structural.includes("access_token") ||
+    structural.includes("passwordHash")
+  ) {
     throw new Error("Portal snapshot included a secret field.");
   }
   if (snapshot.viewer.role !== "guide") return;
@@ -178,8 +231,39 @@ function assertSnapshotPrivacy(snapshot: PortalSnapshot): void {
     throw new Error("Guide snapshot included member account detail.");
   }
   for (const word of ["Vanguard", "Fidelity", "TreasuryDirect"]) {
-    if (json.includes(word)) throw new Error("Guide snapshot included an institution name.");
+    if (structural.includes(word)) throw new Error("Guide snapshot included an institution name.");
   }
+  const prose = JSON.stringify(snapshot.roster.map((row) => [row.checkIns, row.notes, row.tasks]));
+  if (prose.includes("accessToken") || prose.includes("access_token") || prose.includes("passwordHash")) {
+    throw new Error("Guide snapshot included a secret field.");
+  }
+}
+
+async function loadActivity(memberIds: string[], role: Role): Promise<PortalActivity> {
+  if (memberIds.length === 0) return { checkIns: [], notes: [], tasks: [] };
+  const checkIns = await prisma.weeklyCheckIn.findMany({
+    where: { memberId: { in: memberIds } },
+    orderBy: [{ weekKey: "desc" }, { updatedAt: "desc" }],
+  });
+  if (role !== "guide") {
+    return { checkIns: checkIns.map(toCheckInView), notes: [], tasks: [] };
+  }
+  const [notes, tasks] = await Promise.all([
+    prisma.coachingNote.findMany({
+      where: { memberId: { in: memberIds } },
+      orderBy: { createdAt: "desc" },
+      include: { guide: { select: { name: true } } },
+    }),
+    prisma.coachingTask.findMany({
+      where: { memberId: { in: memberIds } },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+  return {
+    checkIns: checkIns.map(toCheckInView),
+    notes: notes.map((note) => toNoteView(note, note.guide.name)),
+    tasks: tasks.map(toTaskView),
+  };
 }
 
 async function connectedItemsFor(memberId: string): Promise<ConnectedItem[]> {
@@ -220,6 +304,15 @@ async function connectedItemsFor(memberId: string): Promise<ConnectedItem[]> {
   }));
 }
 
+export async function storedPlanForMember(memberId: string): Promise<StoredMemberPlan | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: memberId },
+    include: planInclude,
+  });
+  if (!user || user.role !== "member") return null;
+  return toStoredPlan(user);
+}
+
 export async function loadPortalSnapshot(input: {
   id: string;
   role: Role;
@@ -236,6 +329,7 @@ export async function loadPortalSnapshot(input: {
       plan,
       [plan],
       await connectedItemsFor(user.id),
+      await loadActivity([user.id], "member"),
     );
   }
 
@@ -255,6 +349,7 @@ export async function loadPortalSnapshot(input: {
     null,
     plans,
     [],
+    await loadActivity(plans.map((plan) => plan.id), "guide"),
   );
 }
 

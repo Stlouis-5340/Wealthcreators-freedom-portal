@@ -21,14 +21,19 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  guiding     GuideAssignment[] @relation("GuideUser")
-  guides      GuideAssignment[] @relation("MemberUser")
-  expenses    ExpenseLine[]
-  streams     PassiveStream[]
-  assets      AssetLine[]
-  liabilities LiabilityLine[]
-  goals       Goal[]
-  plaidItems  PlaidItem[]
+  guiding       GuideAssignment[] @relation("GuideUser")
+  guides        GuideAssignment[] @relation("MemberUser")
+  expenses      ExpenseLine[]
+  streams       PassiveStream[]
+  assets        AssetLine[]
+  liabilities   LiabilityLine[]
+  goals         Goal[]
+  plaidItems    PlaidItem[]
+  checkIns      WeeklyCheckIn[]
+  notesAbout    CoachingNote[]    @relation("NoteMember")
+  notesWritten  CoachingNote[]    @relation("NoteGuide")
+  tasksAbout    CoachingTask[]    @relation("TaskMember")
+  tasksAssigned CoachingTask[]    @relation("TaskGuide")
 }
 
 model GuideAssignment {
@@ -169,4 +174,62 @@ model GoalStep {
   sort   Int
 
   @@index([goalId])
+}
+
+/// One Freedom check-in per member per America/Chicago calendar week.
+/// weekKey is that week's Monday, YYYY-MM-DD. A later save in the same week updates this row.
+/// actionStatus is "yes", "partial", or "no".
+model WeeklyCheckIn {
+  id                String   @id @default(cuid())
+  memberId          String
+  member            User     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  weekKey           String
+  win               String
+  challenge         String
+  actionStatus      String
+  commitment        String
+  needsSupport      Boolean
+  supportNote       String   @default("")
+  summary           String
+  freedomScore      Float?
+  monthlyFreedomGap Float?
+  qualityScore      Float?
+  submittedAt       DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([memberId, weekKey])
+  @@index([memberId])
+  @@index([weekKey])
+}
+
+/// Timestamped note a Wealth Guide writes about a member. Separate from User.coachingNote.
+model CoachingNote {
+  id        String   @id @default(cuid())
+  memberId  String
+  member    User     @relation("NoteMember", fields: [memberId], references: [id], onDelete: Cascade)
+  guideId   String
+  guide     User     @relation("NoteGuide", fields: [guideId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([memberId])
+  @@index([guideId])
+}
+
+/// Follow-up a Wealth Guide assigns. status is "open" or "done". dueDate is YYYY-MM-DD or empty.
+model CoachingTask {
+  id        String   @id @default(cuid())
+  memberId  String
+  member    User     @relation("TaskMember", fields: [memberId], references: [id], onDelete: Cascade)
+  guideId   String
+  guide     User     @relation("TaskGuide", fields: [guideId], references: [id], onDelete: Cascade)
+  title     String
+  dueDate   String   @default("")
+  status    String   @default("open")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([memberId])
+  @@index([guideId])
+  @@index([status])
 }
