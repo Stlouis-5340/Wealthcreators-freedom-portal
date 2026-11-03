@@ -2,11 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { IntegrityBadge, IntegrityLegend } from "@/components/integrity-badge";
 import { MoneyField } from "@/components/money-field";
 import { PageHeader } from "@/components/page-header";
 import { PlaidLinkOpen } from "@/components/plaid-link-open";
 import { usePortal } from "@/components/portal-provider";
-import { formatMoney, formatPercentOrDash } from "@/lib/format";
+import { formatDate, formatMoney, formatPercentOrDash } from "@/lib/format";
+import { refreshIntegrity } from "@/lib/integrity";
 import {
   createLinkTokenAction,
   disconnectPlaidItemAction,
@@ -24,10 +26,14 @@ export function AssetsView() {
     streams,
     metrics,
     updateAsset,
+    setAssetValuation,
     updateLiability,
     updateStream,
+    lineIntegrity,
     plaidConfigured,
     connectedItems,
+    roster,
+    viewer,
   } = usePortal();
   const [dialog, setDialog] = useState<"unconfigured" | { message: string } | null>(null);
   const [linkToken, setLinkToken] = useState<string | null>(null);
@@ -35,6 +41,7 @@ export function AssetsView() {
   const [removeId, setRemoveId] = useState<string | null>(null);
   const handedOff = useRef(false);
   const router = useRouter();
+  const integrity = roster.find((row) => row.id === viewer.id)?.integrity;
   const equity =
     metrics.totalAssets > 0 ? Math.max(metrics.netWorth, 0) / metrics.totalAssets : 0;
   const financed =
@@ -116,13 +123,20 @@ export function AssetsView() {
       <PageHeader
         eyebrow="Net worth and assets"
         title="What you own, what you owe, what it yields"
-        lede="Balances are saved on your plan. Yield on assets uses annual passive income divided by total assets. Connect a bank or brokerage with Plaid to add those balances. Guides see totals only."
+        lede="Balances are saved on your plan. Yield on assets uses annual passive income divided by total assets. Each figure is labeled verified, estimated, stale, or missing. Connect a bank or brokerage with Plaid to add those balances. Guides see totals only."
       />
+
+      <IntegrityLegend />
 
       <section className="grid gap-4 lg:grid-cols-3">
         <article className="wc-card p-5 lg:col-span-2">
-          <p className="wc-eyebrow">Net worth</p>
-          <p className="mt-2 text-4xl font-semibold tracking-tight">{formatMoney(metrics.netWorth)}</p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="wc-eyebrow">Net worth</p>
+            <IntegrityBadge status={integrity?.netWorth ?? "missing"} />
+          </div>
+          <p className="mt-2 text-4xl font-semibold tracking-tight">
+            {integrity?.netWorth === "missing" ? "—" : formatMoney(metrics.netWorth)}
+          </p>
           <p className="mt-2 text-sm text-muted">
             {formatMoney(metrics.totalAssets)} assets − {formatMoney(metrics.totalLiabilities)} liabilities
           </p>
@@ -137,10 +151,13 @@ export function AssetsView() {
         <article className="wc-card p-5">
           <div className="flex items-center justify-between gap-2">
             <p className="wc-eyebrow">Yield on assets</p>
-            <span className="text-[10px] uppercase tracking-[0.14em] text-gold">Primary</span>
+            <span className="flex items-center gap-2">
+              <IntegrityBadge status={integrity?.yieldOnAssets ?? "missing"} />
+              <span className="text-[10px] uppercase tracking-[0.14em] text-gold">Primary</span>
+            </span>
           </div>
           <p className="mt-2 text-4xl font-semibold tracking-tight">
-            {formatPercentOrDash(metrics.yieldOnAssets, 2)}
+            {integrity?.yieldOnAssets === "missing" ? "—" : formatPercentOrDash(metrics.yieldOnAssets, 2)}
           </p>
           <p className="mt-2 text-sm leading-6 text-muted">
             {formatMoney(metrics.annualPassive)} a year ÷ {formatMoney(metrics.totalAssets)} of assets.
@@ -200,30 +217,30 @@ export function AssetsView() {
       <section className="space-y-3">
         <h2 className="text-sm font-medium uppercase tracking-[0.16em] text-gold-muted">Assets</h2>
         <div className="grid gap-4 md:grid-cols-2">
-          {assets.map((asset) =>
-            isSyncedLine(asset.id) ? (
+          {assets.map((asset) => {
+            const status = lineIntegrity[asset.id] ?? "estimated";
+            const synced = isSyncedLine(asset.id);
+            return synced ? (
               <div key={asset.id} className="wc-card p-5">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="text-xs uppercase tracking-[0.14em] text-muted">
                     {asset.group}
                     {asset.institution ? ` · ${asset.institution}` : ""}
+                    {" · Connected"}
                   </p>
-                  <span className="rounded-full border border-gold-muted/50 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-gold">
-                    Synced
-                  </span>
+                  <IntegrityBadge status={status} />
                 </div>
                 <p className="text-sm text-muted">{asset.name}</p>
                 <p className="mt-2 text-2xl font-semibold tracking-tight">{formatMoney(asset.balance, true)}</p>
+                <p className="mt-2 text-xs text-muted">{stamp("Refreshed", asset.refreshedAt)}</p>
               </div>
             ) : (
               <div key={asset.id} className="wc-card p-5">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="text-xs uppercase tracking-[0.14em] text-muted">
-                    {asset.group} · {asset.institution}
+                    {asset.group} · {asset.institution} · Manual
                   </p>
-                  <span className="rounded-full border border-line px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-muted">
-                    Sample
-                  </span>
+                  <IntegrityBadge status={status} />
                 </div>
                 <MoneyField
                   id={`asset-${asset.id}`}
@@ -231,29 +248,51 @@ export function AssetsView() {
                   value={asset.balance}
                   onChange={(balance) => updateAsset(asset.id, balance)}
                 />
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs text-muted">{stamp("Confirmed", asset.confirmedAt)}</p>
+                  <button
+                    type="button"
+                    className="text-xs text-gold-muted underline-offset-2 hover:text-gold hover:underline"
+                    onClick={() =>
+                      setAssetValuation(
+                        asset.id,
+                        asset.valuation === "verified" ? "estimated" : "verified",
+                      )
+                    }
+                  >
+                    {asset.valuation === "verified" ? "Mark estimated" : "Mark verified"}
+                  </button>
+                </div>
+                <p className="mt-2 text-xs leading-5 text-muted">
+                  Verified means you checked this balance. It is not a bank feed.
+                </p>
               </div>
-            ),
-          )}
+            );
+          })}
         </div>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-sm font-medium uppercase tracking-[0.16em] text-gold-muted">Liabilities</h2>
         <div className="grid gap-4 md:grid-cols-2">
-          {liabilities.map((item) =>
-            isSyncedLine(item.id) ? (
+          {liabilities.map((item) => {
+            const status = lineIntegrity[item.id] ?? "estimated";
+            return isSyncedLine(item.id) ? (
               <div key={item.id} className="wc-card p-5">
                 <div className="mb-3 flex items-center justify-between gap-3">
-                  <p className="text-xs uppercase tracking-[0.14em] text-muted">{item.note}</p>
-                  <span className="rounded-full border border-gold-muted/50 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-gold">
-                    Synced
-                  </span>
+                  <p className="text-xs uppercase tracking-[0.14em] text-muted">{item.note} · Connected</p>
+                  <IntegrityBadge status={status} />
                 </div>
                 <p className="text-sm text-muted">{item.name}</p>
                 <p className="mt-2 text-2xl font-semibold tracking-tight">{formatMoney(item.balance, true)}</p>
+                <p className="mt-2 text-xs text-muted">{stamp("Refreshed", item.refreshedAt)}</p>
               </div>
             ) : (
               <div key={item.id} className="wc-card p-5">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <p className="text-xs uppercase tracking-[0.14em] text-muted">Manual</p>
+                  <IntegrityBadge status={status} />
+                </div>
                 <MoneyField
                   id={`liability-${item.id}`}
                   label={item.name}
@@ -262,8 +301,8 @@ export function AssetsView() {
                   onChange={(balance) => updateLiability(item.id, balance)}
                 />
               </div>
-            ),
-          )}
+            );
+          })}
         </div>
       </section>
 
@@ -277,6 +316,9 @@ export function AssetsView() {
         <div className="grid gap-4 md:grid-cols-2">
           {streams.map((stream) => (
             <div key={stream.id} className="wc-card p-5">
+              <div className="mb-3 flex justify-end">
+                <IntegrityBadge status={lineIntegrity[stream.id] ?? "estimated"} />
+              </div>
               <MoneyField
                 id={`stream-${stream.id}`}
                 label={stream.name}
@@ -324,6 +366,13 @@ export function AssetsView() {
   );
 }
 
+function stamp(label: string, iso: string | null | undefined): string {
+  if (!iso) return `No ${label.toLowerCase()} date yet.`;
+  const day = iso.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return `No ${label.toLowerCase()} date yet.`;
+  return `${label} ${formatDate(day)}.`;
+}
+
 function ConnectedGroup({
   item,
   confirming,
@@ -341,9 +390,12 @@ function ConnectedGroup({
 }) {
   return (
     <div className="rounded-2xl border border-line bg-background px-4 py-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-ink">{item.institutionName}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-medium text-ink">{item.institutionName}</p>
+            <IntegrityBadge status={refreshIntegrity(item.refreshedAt)} />
+          </div>
           <p className="mt-1 text-xs text-muted">
             {item.accounts.length === 0
               ? "No accounts came back on this connection."

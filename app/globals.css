@@ -98,3 +98,7 @@ input[type="checkbox"] {
 input[type="number"] {
   color-scheme: dark;
 }
+
+input[type="range"] {
+  accent-color: #e8b84a;
+}

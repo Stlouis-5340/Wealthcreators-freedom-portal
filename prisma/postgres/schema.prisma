@@ -76,6 +76,10 @@ model AssetLine {
   group       String
   balance     Float
   sort        Int
+  /// Manual balance flag: "estimated" or "verified". Connected lines use PlaidItem.refreshedAt.
+  valuation   String    @default("estimated")
+  /// When the member last confirmed a manual balance. Null has no refresh clock. See STALE_AFTER_MS in lib/integrity.ts.
+  confirmedAt DateTime?
 
   @@index([memberId])
 }
@@ -134,6 +138,8 @@ model PlaidItem {
   institutionId   String         @default("")
   institutionName String
   createdAt       DateTime       @default(now())
+  /// Last successful balance refresh. Older than STALE_AFTER_MS in lib/integrity.ts is labeled stale.
+  refreshedAt     DateTime       @default(now())
   accounts        PlaidAccount[]
 
   @@index([memberId])

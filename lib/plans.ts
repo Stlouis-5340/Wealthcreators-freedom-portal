@@ -41,6 +41,8 @@ export interface ConnectedAccount {
 export interface ConnectedItem {
   id: string;
   institutionName: string;
+  /** ISO time of the last successful balance refresh for this connection. */
+  refreshedAt: string;
   accounts: ConnectedAccount[];
 }
 
@@ -65,8 +67,15 @@ export function planSignature(plans: StoredMemberPlan[]): string {
         plan.id,
         plan.expenses.map((line) => `${line.id}:${line.monthly}`).join(","),
         plan.streams.map((line) => `${line.id}:${line.monthly}`).join(","),
-        plan.assets.map((line) => `${line.id}:${line.balance}`).join(","),
-        plan.liabilities.map((line) => `${line.id}:${line.balance}`).join(","),
+        plan.assets
+          .map(
+            (line) =>
+              `${line.id}:${line.balance}:${line.valuation ?? "estimated"}:${line.confirmedAt ?? ""}:${line.refreshedAt ?? ""}`,
+          )
+          .join(","),
+        plan.liabilities
+          .map((line) => `${line.id}:${line.balance}:${line.refreshedAt ?? ""}`)
+          .join(","),
         plan.goals
           .flatMap((goal) => goal.steps.map((step) => `${step.id}:${step.done ? 1 : 0}`))
           .join(","),
@@ -86,7 +95,13 @@ export function guideSignature(plans: StoredMemberPlan[]): string {
       const steps = plan.goals
         .flatMap((goal) => goal.steps.map((step) => `${step.id}:${step.done ? 1 : 0}`))
         .join(",");
-      return [plan.id, expenses, passive, assets, liabilities, steps].join("|");
+      const freshness = [
+        plan.assets
+          .map((line) => `${line.valuation ?? "estimated"}:${line.confirmedAt ?? ""}:${line.refreshedAt ?? ""}`)
+          .join(","),
+        plan.liabilities.map((line) => line.refreshedAt ?? "").join(","),
+      ].join(";");
+      return [plan.id, expenses, passive, assets, liabilities, steps, freshness].join("|");
     })
     .join("||");
 }

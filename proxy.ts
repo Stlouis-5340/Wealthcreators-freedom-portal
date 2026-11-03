@@ -11,6 +11,8 @@ function isGuidePath(pathname: string): boolean {
 function isMemberPath(pathname: string): boolean {
   return (
     pathname === "/" ||
+    pathname === "/gap" ||
+    pathname.startsWith("/gap/") ||
     pathname === "/goals" ||
     pathname.startsWith("/goals/") ||
     pathname === "/assets" ||

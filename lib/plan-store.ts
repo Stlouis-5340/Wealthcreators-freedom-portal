@@ -26,6 +26,14 @@ const planInclude = {
       steps: { orderBy: { sort: "asc" } },
     },
   },
+  plaidItems: {
+    select: {
+      refreshedAt: true,
+      accounts: {
+        select: { assetLineId: true, liabilityLineId: true },
+      },
+    },
+  },
 } satisfies Prisma.UserInclude;
 
 type PlanUser = Prisma.UserGetPayload<{ include: typeof planInclude }>;
@@ -41,7 +49,24 @@ function asYear(value: number): 1 | 2 | 3 | 4 | 5 | 6 {
   throw new Error(`Checkpoint year must be 1 through 6, received ${value}.`);
 }
 
+function refreshMaps(user: PlanUser): {
+  assets: Map<string, string>;
+  liabilities: Map<string, string>;
+} {
+  const assets = new Map<string, string>();
+  const liabilities = new Map<string, string>();
+  for (const item of user.plaidItems) {
+    const iso = item.refreshedAt.toISOString();
+    for (const account of item.accounts) {
+      if (account.assetLineId) assets.set(account.assetLineId, iso);
+      if (account.liabilityLineId) liabilities.set(account.liabilityLineId, iso);
+    }
+  }
+  return { assets, liabilities };
+}
+
 export function toStoredPlan(user: PlanUser): StoredMemberPlan {
+  const refreshed = refreshMaps(user);
   return {
     id: user.id,
     name: user.name,
@@ -70,6 +95,9 @@ export function toStoredPlan(user: PlanUser): StoredMemberPlan {
         institution: line.institution,
         group: line.group as StoredMemberPlan["assets"][number]["group"],
         balance: line.balance,
+        valuation: line.valuation === "verified" ? "verified" : "estimated",
+        confirmedAt: line.confirmedAt ? line.confirmedAt.toISOString() : null,
+        refreshedAt: refreshed.assets.get(line.id) ?? null,
       };
     }),
     liabilities: user.liabilities.map((line) => ({
@@ -77,6 +105,7 @@ export function toStoredPlan(user: PlanUser): StoredMemberPlan {
       name: line.name,
       balance: line.balance,
       note: line.note,
+      refreshedAt: refreshed.liabilities.get(line.id) ?? null,
     })),
     goals: user.goals.map((goal) => {
       if (!goalKinds.has(goal.kind) || !progressSources.has(goal.progressSource)) {
@@ -113,7 +142,7 @@ function connectionSignature(items: ConnectedItem[]): string {
   return items
     .map(
       (item) =>
-        `${item.id}:${item.accounts
+        `${item.id}:${item.refreshedAt}:${item.accounts
           .map((account) => `${account.id}:${account.balance}:${account.mask}`)
           .join(",")}`,
     )
@@ -160,6 +189,7 @@ async function connectedItemsFor(memberId: string): Promise<ConnectedItem[]> {
     select: {
       id: true,
       institutionName: true,
+      refreshedAt: true,
       accounts: {
         orderBy: { name: "asc" },
         select: {
@@ -177,6 +207,7 @@ async function connectedItemsFor(memberId: string): Promise<ConnectedItem[]> {
   return items.map((item) => ({
     id: item.id,
     institutionName: item.institutionName,
+    refreshedAt: item.refreshedAt.toISOString(),
     accounts: item.accounts.map((account) => ({
       id: account.id,
       name: account.name,
@@ -259,7 +290,17 @@ export async function replaceMemberPlan(memberId: string, plan: SeedPlan): Promi
     }
     if (plan.assets.length > 0) {
       await tx.assetLine.createMany({
-        data: plan.assets.map((line) => ({ ...line, memberId })),
+        data: plan.assets.map((line) => ({
+          id: line.id,
+          memberId,
+          name: line.name,
+          institution: line.institution,
+          group: line.group,
+          balance: line.balance,
+          sort: line.sort,
+          valuation: line.valuation === "verified" ? "verified" : "estimated",
+          confirmedAt: line.confirmedAt,
+        })),
       });
     }
     if (plan.liabilities.length > 0) {
@@ -316,10 +357,30 @@ export async function updateMemberAmount(input: {
     return result.count === 1;
   }
   if (input.kind === "asset") {
-    const result = await prisma.assetLine.updateMany({ where, data: { balance: amount } });
+    const result = await prisma.assetLine.updateMany({
+      where,
+      data: { balance: amount, confirmedAt: new Date() },
+    });
     return result.count === 1;
   }
   const result = await prisma.liabilityLine.updateMany({ where, data: { balance: amount } });
+  return result.count === 1;
+}
+
+export async function setAssetValuation(input: {
+  memberId: string;
+  lineId: string;
+  valuation: "estimated" | "verified";
+}): Promise<boolean> {
+  const linked = await prisma.plaidAccount.findFirst({
+    where: { assetLineId: input.lineId, item: { memberId: input.memberId } },
+    select: { id: true },
+  });
+  if (linked) return false;
+  const result = await prisma.assetLine.updateMany({
+    where: { id: input.lineId, memberId: input.memberId },
+    data: { valuation: input.valuation, confirmedAt: new Date() },
+  });
   return result.count === 1;
 }
 

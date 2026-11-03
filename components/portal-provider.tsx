@@ -8,9 +8,11 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { assessPlanIntegrity, type DataIntegrity } from "@/lib/integrity";
 import { computeMetrics } from "@/lib/metrics";
 import {
   resetPlanAction,
+  setAssetValuationAction,
   toggleStepAction,
   updateAssetAction,
   updateExpenseAction,
@@ -25,10 +27,12 @@ import {
   type StoredMemberPlan,
 } from "@/lib/plans";
 import { memberRow, type RosterRow } from "@/lib/roster";
+import { isSyncedLine } from "@/lib/plaid-labels";
 import type {
   AssetLine,
   ExpenseLine,
   LiabilityLine,
+  ManualValuation,
   Metrics,
   PassiveStream,
 } from "@/lib/types";
@@ -46,7 +50,9 @@ interface PortalContextValue {
   updateExpense: (id: string, monthly: number) => void;
   updateStream: (id: string, monthly: number) => void;
   updateAsset: (id: string, balance: number) => void;
+  setAssetValuation: (id: string, valuation: ManualValuation) => void;
   updateLiability: (id: string, balance: number) => void;
+  lineIntegrity: Record<string, DataIntegrity>;
   toggleStep: (id: string) => void;
   resetDemo: () => void;
   memberById: (id: string) => RosterRow | undefined;
@@ -92,6 +98,7 @@ export function PortalProvider({
 
   const value = useMemo<PortalContextValue>(() => {
     const roster = plan ? [memberRow(plan)] : guideRoster;
+    const lineIntegrity = plan ? assessPlanIntegrity(plan).lines : {};
     const metrics = plan
       ? computeMetrics({
           monthlyPassive: plan.streams.reduce((sum, line) => sum + line.monthly, 0),
@@ -119,6 +126,7 @@ export function PortalProvider({
       streams: plan?.streams ?? [],
       assets: plan?.assets ?? [],
       liabilities: plan?.liabilities ?? [],
+      lineIntegrity,
       plaidConfigured: snapshot.plaidConfigured,
       connectedItems,
       updateExpense: (id, monthly) => {
@@ -136,8 +144,25 @@ export function PortalProvider({
       updateAsset: (id, balance) => {
         if (!plan) return;
         const amount = nonNegative(balance);
-        updatePlan({ ...plan, assets: withAmount(plan.assets, id, "balance", amount) });
+        const confirmedAt = new Date().toISOString();
+        updatePlan({
+          ...plan,
+          assets: plan.assets.map((line) =>
+            line.id === id ? { ...line, balance: amount, confirmedAt } : line,
+          ),
+        });
         enqueue(`asset:${id}`, () => updateAssetAction(id, amount));
+      },
+      setAssetValuation: (id, valuation) => {
+        if (!plan || isSyncedLine(id)) return;
+        const confirmedAt = new Date().toISOString();
+        updatePlan({
+          ...plan,
+          assets: plan.assets.map((line) =>
+            line.id === id ? { ...line, valuation, confirmedAt } : line,
+          ),
+        });
+        enqueue(`asset-flag:${id}`, () => setAssetValuationAction(id, valuation));
       },
       updateLiability: (id, balance) => {
         if (!plan) return;
