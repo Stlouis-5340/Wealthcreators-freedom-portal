@@ -3,6 +3,7 @@
 import {
   loadPortalSnapshot,
   resetSeededPlans,
+  setAssetCapitalRole,
   setMemberStep,
   setAssetValuation,
   updateMemberAmount,
@@ -46,6 +47,15 @@ export async function updateAssetAction(lineId: string, balance: number) {
     lineId,
     amount: nonNegative(balance),
   });
+}
+
+export async function setCapitalRoleAction(
+  lineId: string,
+  capitalRole: "income" | "appreciation" | "lifestyle",
+) {
+  const user = await memberSession();
+  if (!user) return;
+  await setAssetCapitalRole({ memberId: user.id, lineId, capitalRole });
 }
 
 export async function setAssetValuationAction(

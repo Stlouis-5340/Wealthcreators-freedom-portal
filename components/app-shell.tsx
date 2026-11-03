@@ -16,6 +16,8 @@ const memberNav = [
   { href: "/report", label: "Report" },
   { href: "/check-in", label: "Check-in" },
   { href: "/gap", label: "Freedom Gap" },
+  { href: "/efficiency", label: "Efficiency" },
+  { href: "/forecast", label: "Forecast" },
   { href: "/goals", label: "Goals" },
   { href: "/assets", label: "Net Worth" },
   { href: "/spending", label: "Spending Plan" },
@@ -142,9 +144,10 @@ export function AppShell({
             Edits are saved to the portal database. Plaid access tokens stay on the server,
             and guides see only the parts a member has shared, not bank names, category
             spending, or account numbers. Weekly check-ins and the Freedom Report are coaching tools.
-            Freedom Score, Freedom Gap, Freedom Quality, and yield are educational planning
-            tools, not investment advice. An assumed yield is an illustration. Returns are not
-            guaranteed.
+            Freedom Score, Freedom Gap, Freedom Quality, yield, Wealth Efficiency, and the
+            forecast are educational planning tools, not investment advice. An assumed yield
+            is an illustration. Returns are not guaranteed. A saved scenario stays private
+            until you share it with your Wealth Guide.
           </p>
         </main>
       </div>

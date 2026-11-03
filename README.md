@@ -57,13 +57,13 @@ The accounts are created by `npm run db:seed` from `lib/demo-accounts.ts` and `l
 
 After sign-in:
 
-- Alex sees only the member shell: dashboard, monthly Freedom Report, weekly check-in, Freedom Gap, goals, net worth, spending plan, milestones. The figures are Alex's plan in the database. Opening `/guide` returns to the dashboard. The home card opens the current month. Alex also has a saved prior month, so the report can show what moved.
-- Jordan sees the command center and each assigned member's progress. The assignment is the full sample roster, including Alex. Opening the member editor returns to the command center. Member detail includes that month's coaching report. The guide screens still omit institutions, account numbers, category spending, and transactions. Score, totals, goals, and check-ins are on by default. Alex can turn those off under Guide access.
+- Alex sees only the member shell: dashboard, monthly Freedom Report, weekly check-in, Freedom Gap, Wealth Efficiency, Forecast, goals, net worth, spending plan, milestones. The figures are Alex's plan in the database. Opening `/guide` returns to the dashboard. The home card opens the current month. Alex also has a saved prior month, so the report can show what moved. Efficiency splits income-producing capital from the rest. Forecast shows illustrated date ranges, and the decision simulator saves a what-if. One seeded scenario is shared with Jordan. A second stays private.
+- Jordan sees the command center and each assigned member's progress. The assignment is the full sample roster, including Alex. Opening the member editor returns to the command center. Member detail includes that month's coaching report and any forecast the member marked shared. Private scenarios are not loaded. The guide screens still omit institutions, account numbers, category spending, and transactions. Score, totals, goals, and check-ins are on by default. Alex can turn those off under Guide access, and those switches also hide the matching numbers inside a shared scenario.
 - Morgan sees People and the audit log. That screen can change a role, assign a Guide, or pause sign-in. It does not show balances. Authenticator status is on or off, never the secret.
 - Guides and admins see a banner until they enroll an authenticator at Security. The demo passwords work before that. After enrollment, the next sign-in asks for a 6-digit code.
 - Sign out clears the session and returns to `/login`.
 
-Edits to spending categories, balances, passive streams, and this-year steps are written to the database and stay after a refresh. **Reset demo data** restores the seeded plan and keeps Plaid connections. A member resets their own plan. Jordan resets every assigned member.
+Edits to spending categories, balances, passive streams, holding roles, and this-year steps are written to the database and stay after a refresh. **Reset demo data** restores the seeded plan, Alex's holding roles, and Alex's sample scenarios, and keeps Plaid connections. A member resets their own plan. Jordan resets every assigned member.
 
 ## Brand
 
@@ -79,8 +79,9 @@ Tokens live as CSS variables in `app/globals.css` and are exposed to Tailwind.
 ## What this build does
 
 - **Freedom Score** = monthly passive income ÷ monthly spending plan. It can exceed 100%.
-- **Yield on assets** (the primary yield) = annual passive income ÷ total assets. Annual passive is monthly passive × 12.
-- Yield on net worth is available as context only. It is not the headline rate.
+- **Yield on assets** (the primary yield on Home and Net Worth) = annual passive income ÷ total assets. Annual passive is monthly passive × 12.
+- **Income-producing yield** = annual passive income ÷ holdings marked income-producing. Wealth Efficiency = annual passive income ÷ net worth, and it stays secondary. Neither one changes Freedom Score.
+- **Forecast** projects Freedom Score bands at 25, 50, 75, 100, 150, and 200 percent under conservative, current, and accelerated assumptions. Dates are ranges. The decision simulator reruns that math for a $500 expense cut, $1,000 of added passive income, or $1,000 more contributed each month. Saved runs are private unless shared.
 - **Net worth** = assets − liabilities.
 - **Spending plan** is the expense denominator. Categories are stored per member and are editable for the signed-in member.
 - **Goals** for Alex: two wealth goals and one personal goal, each with year-1 through year-6 checkpoints and this-year steps.

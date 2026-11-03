@@ -12,6 +12,9 @@ export const AUDIT_ACTIONS = [
   "admin.reactivate",
   "mfa.enroll",
   "mfa.disable",
+  "member.share_scenario",
+  "member.unshare_scenario",
+  "guide.view_scenarios",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
@@ -27,6 +30,9 @@ export const AUDIT_LABELS: Record<AuditAction, string> = {
   "admin.reactivate": "Account turned back on",
   "mfa.enroll": "Authenticator turned on",
   "mfa.disable": "Authenticator turned off",
+  "member.share_scenario": "Member shared a scenario",
+  "member.unshare_scenario": "Member hid a scenario from the Guide",
+  "guide.view_scenarios": "Guide opened shared scenarios",
 };
 
 const blockedKey = /token|secret|password|mask|plaid|hash|recovery|otp|code/i;

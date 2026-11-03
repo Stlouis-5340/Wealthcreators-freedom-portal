@@ -135,6 +135,8 @@ export function applyGuideAccess(row: RosterRow, access: GuideAccess): RosterRow
     metrics.netWorth = Number.NaN;
     metrics.yieldOnAssets = Number.NaN;
     metrics.yieldOnNetWorth = Number.NaN;
+    metrics.incomeProducingAssets = Number.NaN;
+    metrics.yieldOnIncomeAssets = Number.NaN;
     metrics.monthlySurplus = Number.NaN;
   }
   const flags: MemberFlags = {

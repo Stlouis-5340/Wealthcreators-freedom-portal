@@ -71,7 +71,7 @@ export function planSignature(plans: StoredMemberPlan[]): string {
         plan.assets
           .map(
             (line) =>
-              `${line.id}:${line.balance}:${line.valuation ?? "estimated"}:${line.confirmedAt ?? ""}:${line.refreshedAt ?? ""}`,
+              `${line.id}:${line.balance}:${line.valuation ?? "estimated"}:${line.confirmedAt ?? ""}:${line.refreshedAt ?? ""}:${line.capitalRole ?? ""}`,
           )
           .join(","),
         plan.liabilities

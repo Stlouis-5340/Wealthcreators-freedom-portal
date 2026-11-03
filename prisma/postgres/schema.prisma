@@ -46,6 +46,7 @@ model User {
   grantsAsMember GuideAccessGrant[] @relation("GrantMember")
   grantsAsGuide  GuideAccessGrant[] @relation("GrantGuide")
   auditLogs      AuditLog[]
+  scenarios      ScenarioRun[]
 }
 
 model GuideAssignment {
@@ -95,6 +96,8 @@ model AssetLine {
   valuation   String    @default("estimated")
   /// When the member last confirmed a manual balance. Null has no refresh clock. See STALE_AFTER_MS in lib/integrity.ts.
   confirmedAt DateTime?
+  /// income, appreciation, lifestyle, or empty. Empty means the portal assumed a role.
+  capitalRole String    @default("")
 
   @@index([memberId])
 }
@@ -303,4 +306,21 @@ model AuditLog {
   @@index([action])
   @@index([createdAt])
   @@index([actorUserId])
+}
+
+/// A saved forecast or what-if. assumptions and outputs are JSON text.
+/// sharedWithGuide false stays off the Guide view. Guides still need an assignment and the member's scopes.
+model ScenarioRun {
+  id              String   @id @default(cuid())
+  memberId        String
+  member          User     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  name            String
+  assumptions     String
+  outputs         String
+  sharedWithGuide Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([memberId])
+  @@index([memberId, sharedWithGuide])
 }

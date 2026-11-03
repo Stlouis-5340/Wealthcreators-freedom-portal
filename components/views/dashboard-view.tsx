@@ -8,6 +8,7 @@ import { IntegrityBadge } from "@/components/integrity-badge";
 import { usePortal } from "@/components/portal-provider";
 import { QualityChips } from "@/components/quality-panel";
 import { StatusPills } from "@/components/status-pill";
+import { EfficiencyAside } from "@/components/efficiency-aside";
 import { formatMoney, formatPercentOrDash } from "@/lib/format";
 import type { DataIntegrity } from "@/lib/integrity";
 import { passiveNeededFor } from "@/lib/metrics";
@@ -131,10 +132,12 @@ export function DashboardView() {
             <summary className="cursor-pointer text-gold-muted">Yield on net worth</summary>
             <p className="mt-2 leading-6">
               {formatMoney(metrics.annualPassive)} ÷ {formatMoney(metrics.netWorth)} net worth ={" "}
-              {formatPercentOrDash(metrics.yieldOnNetWorth, 2)}. Useful context. The portal leads
-              with yield on assets because liabilities should not make the rate look higher.
+              {formatPercentOrDash(metrics.yieldOnNetWorth, 2)}. That ratio is Wealth Efficiency.
+              It stays secondary because liabilities can make it look higher. The large figure is
+              still yield on everything you own.
             </p>
           </details>
+          <EfficiencyAside metrics={metrics} />
         </article>
       </section>
 
