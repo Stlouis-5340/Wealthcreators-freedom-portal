@@ -60,7 +60,8 @@ export function CheckInView() {
     <div className="mx-auto max-w-2xl space-y-6">
       <header>
         <p className="wc-eyebrow">Weekly check-in</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+        <div className="wc-rule" />
+        <h1 className="mt-4 text-4xl sm:text-5xl">
           {current ? "Update this week" : "Check in this week"}
         </h1>
         <p className="mt-3 text-sm leading-6 text-muted">

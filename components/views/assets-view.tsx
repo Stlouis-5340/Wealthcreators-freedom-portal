@@ -143,10 +143,10 @@ export function AssetsView() {
           </p>
           <div className="mt-4 flex h-2.5 overflow-hidden rounded-full bg-surface-raised">
             <div className="bg-gold" style={{ width: `${equity * 100}%` }} />
-            <div className="bg-[#3a3a3a]" style={{ width: `${financed * 100}%` }} />
+            <div className="bg-ink/35" style={{ width: `${financed * 100}%` }} />
           </div>
           <p className="mt-2 text-xs text-muted">
-            Gold is the unfinanced share of assets. The gray share is still paired with a liability.
+            Gold is the unfinanced share of assets. The light share is still paired with a liability.
           </p>
         </article>
         <article className="wc-card p-5">
@@ -477,7 +477,7 @@ function PlaidDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
-      <button type="button" className="absolute inset-0 bg-black/75" aria-label="Close dialog" onClick={onClose} />
+      <button type="button" className="absolute inset-0 bg-scrim" aria-label="Close dialog" onClick={onClose} />
       <div
         role="dialog"
         aria-modal="true"
