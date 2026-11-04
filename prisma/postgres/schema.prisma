@@ -21,6 +21,8 @@ model User {
   lastActive          String   @default("")
   coachingNote        String   @default("")
   rosterSort          Int      @default(0)
+  /// Starting circumstance for leadership views, such as Foundation or Building. Empty means unassigned. Not a rank.
+  cohort              String   @default("")
   isActive            Boolean  @default(true)
   mfaEnabled          Boolean  @default(false)
   mfaSecretEnc        String   @default("")

@@ -40,6 +40,7 @@ const guideNav = [
 
 const adminNav = [
   { href: "/admin", label: "People" },
+  { href: "/admin/analytics", label: "Leadership" },
   { href: "/admin/audit", label: "Audit log" },
   securityLink,
 ];
