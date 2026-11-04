@@ -12,6 +12,7 @@ import { seedAlexCoach } from "../lib/coach-store";
 import { chicagoMonthKey } from "../lib/month";
 import { seedEducationAndHub } from "../lib/learn-seed";
 import { resetMemberScenarios } from "../lib/scenario-store";
+import { cohortForMember, seedLeadershipSignals } from "../lib/leadership-seed";
 import { assignmentSeeds, guideSeed, memberSeeds } from "../lib/sample-plans";
 
 const clearedSecurity = {
@@ -58,6 +59,7 @@ async function main() {
         lastActive: member.lastActive,
         coachingNote: member.coachingNote,
         rosterSort: member.rosterSort,
+        cohort: cohortForMember(member.id),
         ...clearedSecurity,
       },
       update: {
@@ -67,6 +69,7 @@ async function main() {
         lastActive: member.lastActive,
         coachingNote: member.coachingNote,
         rosterSort: member.rosterSort,
+        cohort: cohortForMember(member.id),
         ...clearedSecurity,
         ...(member.id === "alex" ? { passwordHash: hashPassword(member.password) } : {}),
       },
@@ -190,6 +193,7 @@ async function main() {
   await seedAlexCoach(chicagoMonthKey());
   await resetCommunityForMembers(memberIds);
   await resetLegacyForMembers(memberIds);
+  await seedLeadershipSignals(memberIds);
 }
 
 main()

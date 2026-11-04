@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { PeopleManager } from "@/components/admin/people-manager";
 import { PageHeader } from "@/components/page-header";
 import { isPortalRole } from "@/auth";
@@ -56,6 +57,13 @@ export default async function Page() {
         title="People"
         lede="Roles, Guide assignments, and who can sign in. Pausing an account blocks the next sign-in. It does not delete a plan."
       />
+      <p className="max-w-3xl text-sm leading-6 text-muted">
+        Program outcomes are on{" "}
+        <Link href="/admin/analytics" className="text-gold hover:text-gold-bright">
+          Leadership analytics
+        </Link>
+        . This page stays people, roles, and sign-in.
+      </p>
       <section className="grid gap-3 sm:grid-cols-3">
         <Count label="Members" value={String(census.members)} detail="Plans on the roster" />
         <Count
