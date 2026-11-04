@@ -18,6 +18,10 @@ export const AUDIT_ACTIONS = [
   "member.generate_action_plan",
   "member.regenerate_action_plan",
   "guide.view_coach",
+  "member.share_achievement",
+  "member.hide_achievement",
+  "guide.view_challenges",
+  "guide.view_recognition",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
@@ -39,6 +43,10 @@ export const AUDIT_LABELS: Record<AuditAction, string> = {
   "member.generate_action_plan": "Member wrote a Freedom Action Plan",
   "member.regenerate_action_plan": "Member refreshed a Freedom Action Plan",
   "guide.view_coach": "Guide opened coach insights",
+  "member.share_achievement": "Member shared recognition with the Guide",
+  "member.hide_achievement": "Member made recognition private",
+  "guide.view_challenges": "Guide opened challenge enrollments",
+  "guide.view_recognition": "Guide opened shared recognition",
 };
 
 const blockedKey = /token|secret|password|mask|plaid|hash|recovery|otp|code/i;

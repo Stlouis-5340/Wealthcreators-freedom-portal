@@ -45,21 +45,26 @@ model User {
   tasksAbout     CoachingTask[]    @relation("TaskMember")
   tasksAssigned  CoachingTask[]    @relation("TaskGuide")
   reports        MonthlyReport[]
-  grantsAsMember GuideAccessGrant[] @relation("GrantMember")
-  grantsAsGuide  GuideAccessGrant[] @relation("GrantGuide")
-  auditLogs      AuditLog[]
-  scenarios      ScenarioRun[]
-  coachThreads   CoachThread[]
-  actionPlans    FreedomActionPlan[]
-  lessonProgress LessonProgress[]
-  quizAttempts   QuizAttempt[]
-  hubMessages    HubMessage[]     @relation("HubAuthor")
-  hubThreads     HubMessage[]     @relation("HubMember")
-  sessionsAbout  SessionSummary[] @relation("SessionMember")
-  sessionsHeld   SessionSummary[] @relation("SessionGuide")
-  agendaItems    AgendaItem[]
-  hubReads       HubRead[]        @relation("HubReader")
-  hubReadAbout   HubRead[]        @relation("HubReadMember")
+  grantsAsMember    GuideAccessGrant[]    @relation("GrantMember")
+  grantsAsGuide     GuideAccessGrant[]    @relation("GrantGuide")
+  auditLogs         AuditLog[]
+  scenarios         ScenarioRun[]
+  coachThreads      CoachThread[]
+  actionPlans       FreedomActionPlan[]
+  lessonProgress    LessonProgress[]
+  quizAttempts      QuizAttempt[]
+  hubMessages       HubMessage[]          @relation("HubAuthor")
+  hubThreads        HubMessage[]          @relation("HubMember")
+  sessionsAbout     SessionSummary[]      @relation("SessionMember")
+  sessionsHeld      SessionSummary[]      @relation("SessionGuide")
+  agendaItems       AgendaItem[]
+  hubReads          HubRead[]             @relation("HubReader")
+  hubReadAbout      HubRead[]             @relation("HubReadMember")
+  enrollments       ChallengeEnrollment[]
+  lessonCompletions LessonCompletion[]
+  achievements      Achievement[]
+  lifeMetrics       LifeMetrics?
+  groupsCreated     AccountabilityGroup[] @relation("GroupCreator")
 }
 
 model GuideAssignment {
@@ -508,4 +513,89 @@ model HubRead {
 
   @@unique([userId, memberId])
   @@index([memberId])
+}
+
+/// Catalog row. durationDays is 30, 60, or 90. verifier selects the progress rule in lib/challenges.ts.
+model Challenge {
+  id           String                 @id
+  title        String
+  summary      String
+  durationDays Int
+  verifier     String
+  sort         Int                    @default(0)
+  enrollments  ChallengeEnrollment[]
+  groups       AccountabilityGroup[]
+}
+
+/// One row per member per challenge. status is active, completed, or abandoned.
+/// progress is 0–100. evidence is JSON and must not hold bank names or tokens.
+model ChallengeEnrollment {
+  id          String    @id @default(cuid())
+  challengeId String
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  memberId    String
+  member      User      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  status      String    @default("active")
+  progress    Float     @default(0)
+  evidence    String    @default("{}")
+  startedAt   DateTime  @default(now())
+  endsAt      DateTime
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([challengeId, memberId])
+  @@index([memberId])
+  @@index([status])
+}
+
+/// Small accountability circle for one challenge. memberIds is a JSON array of member ids.
+model AccountabilityGroup {
+  id          String    @id @default(cuid())
+  challengeId String
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  name        String
+  memberIds   String
+  createdById String
+  createdBy   User      @relation("GroupCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@index([challengeId])
+  @@index([createdById])
+}
+
+/// A challenge lesson the member marked read. This is not a course catalog.
+model LessonCompletion {
+  id          String   @id @default(cuid())
+  memberId    String
+  member      User     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  lessonKey   String
+  completedAt DateTime @default(now())
+
+  @@unique([memberId, lessonKey])
+  @@index([memberId])
+}
+
+/// Unlocked recognition. visibility is "private" or "guide".
+/// Copy lives in lib/recognition.ts so a row cannot store dollar amounts.
+model Achievement {
+  id         String   @id @default(cuid())
+  memberId   String
+  member     User     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  key        String
+  visibility String   @default("private")
+  unlockedAt DateTime @default(now())
+
+  @@unique([memberId, key])
+  @@index([memberId])
+  @@index([memberId, visibility])
+}
+
+/// Optional self-reported life measures. One row per member. updatedAt is lastUpdated.
+model LifeMetrics {
+  memberId           String   @id
+  member             User     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  timeFreedomHours   Float?
+  familyPriority     Int?
+  healthStreakDays   Int?
+  experiencesPlanned String   @default("")
+  updatedAt          DateTime @updatedAt
 }

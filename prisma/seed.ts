@@ -1,4 +1,5 @@
 import { fullGuideAccess, serializeGuideAccess } from "../lib/access";
+import { resetCommunityForMembers } from "../lib/community-store";
 import { demoAccounts } from "../lib/demo-accounts";
 import { prisma } from "../lib/db";
 import { hashPassword } from "../lib/passwords";
@@ -186,6 +187,7 @@ async function main() {
   await resetMemberScenarios(memberIds);
   await seedEducationAndHub(memberIds);
   await seedAlexCoach(chicagoMonthKey());
+  await resetCommunityForMembers(memberIds);
 }
 
 main()
