@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { BrandLogo } from "@/components/brand-logo";
+import { CommunityAnchor } from "@/components/mighty-networks-link";
 import { usePortal } from "@/components/portal-provider";
 import { signOutAction } from "@/lib/auth-actions";
 import { homeForRole, roleTitle } from "@/lib/demo-accounts";
@@ -11,7 +12,9 @@ import type { Role } from "@/lib/types";
 
 const securityLink = { href: "/security", label: "Security" };
 
-const memberNav = [
+type ShellLink = { href: string; label: string; external?: boolean };
+
+const memberNav: ShellLink[] = [
   { href: "/", label: "Dashboard" },
   { href: "/coach", label: "Coach" },
   { href: "/report", label: "Report" },
@@ -26,6 +29,7 @@ const memberNav = [
   { href: "/learn", label: "Learn" },
   { href: "/my-guide", label: "Guide" },
   { href: "/challenges", label: "Challenges" },
+  { href: "/community", label: "Community" },
   { href: "/recognition", label: "Recognition" },
   { href: "/life", label: "Life" },
   { href: "/legacy", label: "Legacy" },
@@ -33,17 +37,30 @@ const memberNav = [
   securityLink,
 ];
 
-const guideNav = [
+const guideNav: ShellLink[] = [
   { href: "/guide", label: "Command center" },
   securityLink,
 ];
 
-const adminNav = [
+const adminNav: ShellLink[] = [
   { href: "/admin", label: "People" },
   { href: "/admin/analytics", label: "Leadership" },
   { href: "/admin/audit", label: "Audit log" },
   securityLink,
 ];
+
+function memberLinks(communityUrl: string | null): ShellLink[] {
+  return memberNav.map((item) =>
+    item.href === "/community" && communityUrl
+      ? { href: communityUrl, label: "Community", external: true }
+      : item,
+  );
+}
+
+function guideLinks(communityUrl: string | null): ShellLink[] {
+  if (!communityUrl) return guideNav;
+  return [guideNav[0], { href: communityUrl, label: "Community", external: true }, ...guideNav.slice(1)];
+}
 
 function navActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
@@ -56,18 +73,22 @@ export function AppShell({
   children,
   user,
   guideUnread = 0,
+  communityUrl = null,
 }: {
   children: ReactNode;
   user: { name: string; email: string; role: Role; mfaEnabled: boolean };
   /** Unread notes on the member Guide page. Hidden while that page is open. */
   guideUnread?: number;
+  /** Mighty Networks home. Null keeps members on the coming-soon page and hides the guide link. */
+  communityUrl?: string | null;
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const { resetDemo } = usePortal();
   const [menuOpen, setMenuOpen] = useState(false);
   const homeHref = homeForRole(user.role);
-  const links = user.role === "guide" ? guideNav : user.role === "admin" ? adminNav : memberNav;
+  const links =
+    user.role === "guide" ? guideLinks(communityUrl) : user.role === "admin" ? adminNav : memberLinks(communityUrl);
   const showMfaBanner = (user.role === "guide" || user.role === "admin") && !user.mfaEnabled;
 
   useEffect(() => {
@@ -113,7 +134,8 @@ export function AppShell({
               key={item.href}
               href={item.href}
               label={item.label}
-              active={navActive(pathname, item.href)}
+              external={item.external}
+              active={item.external ? false : navActive(pathname, item.href)}
               badge={item.href === "/my-guide" && pathname !== "/my-guide" ? guideUnread : 0}
               onNavigate={closeMenu}
             />
@@ -162,6 +184,8 @@ export function AppShell({
             is an illustration. Returns are not guaranteed. A saved scenario stays private
             until you share it with your Wealth Guide. Challenges and recognition
             stay off the public site. A recognition card never shows balances.
+            Community opens Mighty Networks in a new tab when that address is configured.
+            The portal does not sign you in there.
             Life measures are what you report, and they do not change Freedom Score.
             The Legacy planner is an educational organizer for your notes. It is not legal, tax,
             or insurance advice, and it does not store Social Security numbers or document files.
@@ -193,7 +217,8 @@ export function AppShell({
                 key={item.href}
                 href={item.href}
                 label={item.label}
-                active={navActive(pathname, item.href)}
+                external={item.external}
+                active={item.external ? false : navActive(pathname, item.href)}
                 badge={item.href === "/my-guide" && pathname !== "/my-guide" ? guideUnread : 0}
                 onNavigate={closeMenu}
               />
@@ -211,26 +236,36 @@ function NavLink({
   href,
   active,
   label,
+  external = false,
   badge = 0,
   onNavigate,
 }: {
   href: string;
   active: boolean;
   label: string;
+  external?: boolean;
   badge?: number;
   onNavigate: () => void;
 }) {
+  const className = `flex items-center justify-between gap-3 rounded-xl border-l-2 px-3 py-2.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
+    active
+      ? "border-gold bg-surface-raised text-ink"
+      : "border-transparent text-muted hover:bg-surface-raised hover:text-ink"
+  }`;
+
+  if (external) {
+    return (
+      <CommunityAnchor url={href} className={className} onClick={onNavigate}>
+        <span>{label}</span>
+        <span aria-hidden="true" className="text-[11px] text-gold-muted">
+          ↗
+        </span>
+      </CommunityAnchor>
+    );
+  }
+
   return (
-    <Link
-      href={href}
-      aria-current={active ? "page" : undefined}
-      onClick={onNavigate}
-      className={`flex items-center justify-between gap-3 rounded-xl border-l-2 px-3 py-2.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
-        active
-          ? "border-gold bg-surface-raised text-ink"
-          : "border-transparent text-muted hover:bg-surface-raised hover:text-ink"
-      }`}
-    >
+    <Link href={href} aria-current={active ? "page" : undefined} onClick={onNavigate} className={className}>
       <span>{label}</span>
       {badge > 0 ? (
         <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-gold px-1.5 text-[11px] font-semibold text-background">
