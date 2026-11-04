@@ -3,6 +3,7 @@ import { Suspense, type ReactNode } from "react";
 import { auth, isPortalRole } from "@/auth";
 import { AppShell } from "@/components/app-shell";
 import { PortalProvider } from "@/components/portal-provider";
+import { readCommunityUrl } from "@/lib/community-link";
 import { unreadHubCount } from "@/lib/hub-store";
 import { loadPortalSnapshot } from "@/lib/plan-store";
 
@@ -23,10 +24,12 @@ async function AuthedShell({ children }: { children: ReactNode }) {
   const snapshot = await loadPortalSnapshot({ id: user.id, role: user.role });
   if (!snapshot) redirect("/login");
   const guideUnread = user.role === "member" ? await unreadHubCount(user.id, user.id) : 0;
+  const communityUrl = await readCommunityUrl();
 
   return (
     <PortalProvider snapshot={snapshot}>
       <AppShell
+        communityUrl={communityUrl}
         guideUnread={guideUnread}
         user={{
           name: snapshot.viewer.name,
