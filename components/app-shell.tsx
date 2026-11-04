@@ -96,8 +96,8 @@ export function AppShell({
       <a className="skip-link" href="#content">
         Skip to content
       </a>
-      <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-[280px] flex-col border-r border-line bg-surface lg:flex">
-        <div className="px-5 pt-6">
+      <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-[280px] flex-col overflow-y-auto border-r border-line bg-surface lg:flex">
+        <div className="shrink-0 px-5 pt-6">
           <Link href={homeHref} className="block rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold">
             <BrandLogo className="h-auto w-full" priority />
           </Link>
@@ -105,7 +105,7 @@ export function AppShell({
             Freedom Portal
           </p>
         </div>
-        <nav className="mt-6 flex-1 space-y-1 px-3" aria-label="Primary">
+        <nav className="mt-6 min-h-min flex-1 space-y-1 px-3" aria-label="Primary">
           {links.map((item) => (
             <NavLink
               key={item.href}
@@ -175,15 +175,15 @@ export function AppShell({
           />
           <div
             id="mobile-nav"
-            className="absolute inset-y-0 right-0 flex w-[min(100%,320px)] flex-col border-l border-line bg-surface"
+            className="absolute inset-y-0 right-0 flex w-[min(100%,320px)] flex-col overflow-y-auto border-l border-line bg-surface"
           >
-            <div className="flex items-center justify-between px-4 py-4">
+            <div className="flex shrink-0 items-center justify-between px-4 py-4">
               <p className="wc-eyebrow">Freedom Portal</p>
               <button type="button" className="wc-btn wc-btn-ghost" onClick={() => setMenuOpen(false)}>
                 Close
               </button>
             </div>
-            <nav className="flex-1 space-y-1 px-3" aria-label="Mobile">
+            <nav className="min-h-min flex-1 space-y-1 px-3" aria-label="Mobile">
             {links.map((item) => (
               <NavLink
                 key={item.href}
@@ -246,7 +246,7 @@ function AccountCard({
   onReset: () => void;
 }) {
   return (
-    <div className="border-t border-line p-4">
+    <div className="shrink-0 border-t border-line p-4">
       <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Signed in</p>
       <p className="mt-2 text-sm font-medium text-ink">{user.name}</p>
       <p className="text-xs text-gold-muted">{roleTitle(user.role)}</p>
