@@ -21,8 +21,7 @@ import { assessFreedomQuality } from "./quality";
 import type { GoalKind } from "./types";
 import { formatWeekSpan } from "./week";
 
-export const EDUCATION_PLACEHOLDER =
-  "Lesson progress is not in the portal yet. This report does not count courses, quizzes, or a learning path. When that exists, this section will show what you finished and what fits the gap you are working on.";
+export { EDUCATION_PLACEHOLDER } from "./education";
 
 export const EDUCATIONAL_LABEL =
   "Educational guidance. These steps come from the Freedom Gap, check-ins, and open goals. They are not investment, tax, or legal advice, and they do not promise a result.";

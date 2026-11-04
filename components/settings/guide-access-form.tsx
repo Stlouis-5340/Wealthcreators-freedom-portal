@@ -31,6 +31,11 @@ export function GuideAccessForm({
       <Toggle name="totals" label="Totals: net worth, passive income, and spending-plan total" defaultChecked={access.totals} />
       <Toggle name="goals" label="Six-year goals" defaultChecked={access.goals} />
       <Toggle name="checkIns" label="Weekly check-ins" defaultChecked={access.checkIns} />
+      <Toggle
+        name="education"
+        label="Learning progress: lessons finished and quiz scores, not the answers"
+        defaultChecked={access.education}
+      />
       <p className="text-xs leading-5 text-muted">
         Check-ins include the words you wrote and the score snapshot from that week. Coaching tasks
         your Guide assigns stay visible so follow-ups are not lost. Category spending and

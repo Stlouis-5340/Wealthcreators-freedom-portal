@@ -47,7 +47,14 @@ for (const item of achievementCatalog) {
   assert(!cardLeaksMoney(item), `${item.key} catalog copy has no dollar amount or account`);
 }
 
-const hidden: GuideAccess = { score: false, totals: false, goals: false, checkIns: false, tasks: true };
+const hidden: GuideAccess = {
+  score: false,
+  totals: false,
+  goals: false,
+  checkIns: false,
+  tasks: true,
+  education: false,
+};
 const scoreCard = presentAchievementForGuide(
   { key: "score-50", visibility: "guide", unlockedAt: "2026-11-03T18:00:00.000Z" },
   fullGuideAccess,

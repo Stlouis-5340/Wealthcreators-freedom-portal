@@ -270,6 +270,7 @@ function Tasks({
                   <p className={`mt-1 text-xs ${overdue ? "text-warning" : "text-muted"}`}>
                     {task.status === "done" ? "Done" : "Open"}
                     {task.dueDate ? ` · due ${task.dueDate}` : " · no due date"}
+                    {task.source === "member" ? " · from the member" : ""}
                     {overdue ? " · past due" : ""}
                   </p>
                 </div>

@@ -55,6 +55,30 @@ export function DashboardView() {
 
       <ReportCard />
 
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Link href="/coach" className="wc-card block p-5 hover:border-gold-muted">
+          <p className="wc-eyebrow">Coach</p>
+          <h2 className="mt-2 text-lg font-semibold text-ink">Freedom Coach</h2>
+          <p className="mt-2 text-sm leading-6 text-muted">
+            Three actions for this month, and a coach that reads your plan. Educational only.
+          </p>
+        </Link>
+        <Link href="/learn" className="wc-card block p-5 hover:border-gold-muted">
+          <p className="wc-eyebrow">Grow</p>
+          <h2 className="mt-2 text-lg font-semibold text-ink">Learn</h2>
+          <p className="mt-2 text-sm leading-6 text-muted">
+            Short lessons on the Freedom Score, passive income, and working with your Guide. Educational only.
+          </p>
+        </Link>
+        <Link href="/my-guide" className="wc-card block p-5 hover:border-gold-muted">
+          <p className="wc-eyebrow">Together</p>
+          <h2 className="mt-2 text-lg font-semibold text-ink">Your Guide</h2>
+          <p className="mt-2 text-sm leading-6 text-muted">
+            Action items, a short message thread, and notes from your last session.
+          </p>
+        </Link>
+      </section>
+
       <section className="grid gap-4 lg:grid-cols-2">
         <article className="wc-card p-5 sm:p-6">
           <div className="flex items-center justify-between gap-3">

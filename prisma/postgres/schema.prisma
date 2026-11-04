@@ -26,6 +26,8 @@ model User {
   mfaSecretEnc        String   @default("")
   mfaPendingSecretEnc String   @default("")
   mfaRecoveryHashes   String   @default("[]")
+  /// Guide scheduling page, usually a Calendly link. Empty uses NEXT_PUBLIC_GUIDE_SCHEDULING_URL.
+  schedulingUrl       String   @default("")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -47,6 +49,17 @@ model User {
   grantsAsGuide     GuideAccessGrant[]    @relation("GrantGuide")
   auditLogs         AuditLog[]
   scenarios         ScenarioRun[]
+  coachThreads      CoachThread[]
+  actionPlans       FreedomActionPlan[]
+  lessonProgress    LessonProgress[]
+  quizAttempts      QuizAttempt[]
+  hubMessages       HubMessage[]          @relation("HubAuthor")
+  hubThreads        HubMessage[]          @relation("HubMember")
+  sessionsAbout     SessionSummary[]      @relation("SessionMember")
+  sessionsHeld      SessionSummary[]      @relation("SessionGuide")
+  agendaItems       AgendaItem[]
+  hubReads          HubRead[]             @relation("HubReader")
+  hubReadAbout      HubRead[]             @relation("HubReadMember")
   enrollments       ChallengeEnrollment[]
   lessonCompletions LessonCompletion[]
   achievements      Achievement[]
@@ -236,7 +249,8 @@ model CoachingNote {
   @@index([guideId])
 }
 
-/// Follow-up a Wealth Guide assigns. status is "open" or "done". dueDate is YYYY-MM-DD or empty.
+/// Shared action item. status is "open" or "done". dueDate is YYYY-MM-DD or empty.
+/// source is "guide" or "member". Either person can mark it done.
 model CoachingTask {
   id        String   @id @default(cuid())
   memberId  String
@@ -246,6 +260,8 @@ model CoachingTask {
   title     String
   dueDate   String   @default("")
   status    String   @default("open")
+  /// "guide" or "member".
+  source    String   @default("guide")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -280,7 +296,7 @@ model MonthlyReport {
 }
 
 /// What an assigned Guide may see. Category spending and transactions are not scopes in v1.
-/// scopes is JSON: score, totals, goals, checkIns, tasks. revokedAt null means the grant is on.
+/// scopes is JSON: score, totals, goals, checkIns, tasks, education. revokedAt null means the grant is on.
 model GuideAccessGrant {
   id        String    @id @default(cuid())
   memberId  String
@@ -328,6 +344,175 @@ model ScenarioRun {
 
   @@index([memberId])
   @@index([memberId, sharedWithGuide])
+}
+
+/// One Freedom Coach conversation per member. Messages stay when the monthly plan is refreshed.
+model CoachThread {
+  id        String         @id @default(cuid())
+  memberId  String
+  member    User           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  messages  CoachMessage[]
+
+  @@index([memberId])
+}
+
+/// role is "user" or "assistant". body is the visible text. No tokens or bank payloads.
+model CoachMessage {
+  id        String      @id
+  threadId  String
+  thread    CoachThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  role      String
+  body      String
+  createdAt DateTime    @default(now())
+
+  @@index([threadId, createdAt])
+}
+
+/// One Freedom Action Plan per member per America/Chicago month.
+/// actions and previousActions are JSON with three educational actions.
+/// A member refresh updates this row, keeps the prior JSON, and stamps regeneratedAt.
+model FreedomActionPlan {
+  id              String    @id @default(cuid())
+  memberId        String
+  member          User      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  monthKey        String
+  actions         String
+  previousActions String    @default("")
+  /// "seed" or "generated"
+  source          String    @default("generated")
+  generatedAt     DateTime  @default(now())
+  regeneratedAt   DateTime?
+
+  @@unique([memberId, monthKey])
+  @@index([memberId])
+}
+
+/// A curated learning path. Lessons are educational. They are not advice.
+model LearningPath {
+  id       String   @id
+  title    String
+  summary  String
+  sort     Int
+  lessons  Lesson[]
+}
+
+/// One lesson. level is "beginner" or "intermediate". exercise empty means there is no checkbox.
+model Lesson {
+  id        String           @id
+  pathId    String
+  path      LearningPath     @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  title     String
+  summary   String
+  minutes   Int
+  level     String
+  body      String
+  exercise  String           @default("")
+  sort      Int
+  questions QuizQuestion[]
+  progress  LessonProgress[]
+  attempts  QuizAttempt[]
+
+  @@index([pathId])
+}
+
+/// Quiz prompt. choices is a JSON array of strings. answerIndex is the correct choice.
+/// Guides do not receive this row. They see the score only.
+model QuizQuestion {
+  id          String @id
+  lessonId    String
+  lesson      Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  prompt      String
+  choices     String
+  answerIndex Int
+  sort        Int
+
+  @@index([lessonId])
+}
+
+/// One row per member per lesson. status is "notStarted", "inProgress", or "completed".
+model LessonProgress {
+  id           String    @id @default(cuid())
+  memberId     String
+  member       User      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  lessonId     String
+  lesson       Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  status       String    @default("notStarted")
+  completedAt  DateTime?
+  exerciseDone Boolean   @default(false)
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([memberId, lessonId])
+  @@index([memberId])
+  @@index([lessonId])
+}
+
+/// A finished quiz. score is a percent from 0 to 100. Answers are not stored.
+model QuizAttempt {
+  id        String   @id @default(cuid())
+  memberId  String
+  member    User     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  lessonId  String
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  score     Int
+  correct   Int
+  total     Int
+  createdAt DateTime @default(now())
+
+  @@index([memberId, lessonId])
+}
+
+/// Short note on the member–Guide thread. Not a live chat.
+model HubMessage {
+  id        String   @id @default(cuid())
+  memberId  String
+  member    User     @relation("HubMember", fields: [memberId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation("HubAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([memberId, createdAt])
+}
+
+/// Guide's notes after a coaching session.
+model SessionSummary {
+  id        String   @id @default(cuid())
+  memberId  String
+  member    User     @relation("SessionMember", fields: [memberId], references: [id], onDelete: Cascade)
+  guideId   String
+  guide     User     @relation("SessionGuide", fields: [guideId], references: [id], onDelete: Cascade)
+  summary   String
+  nextSteps String   @default("")
+  heldAt    DateTime
+  createdAt DateTime @default(now())
+
+  @@index([memberId, heldAt])
+}
+
+/// Something the member wants on the next session agenda.
+model AgendaItem {
+  id        String   @id @default(cuid())
+  memberId  String
+  member    User     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([memberId])
+}
+
+/// When this person last opened the member's shared workspace. Used for the unread count.
+model HubRead {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation("HubReader", fields: [userId], references: [id], onDelete: Cascade)
+  memberId   String
+  member     User     @relation("HubReadMember", fields: [memberId], references: [id], onDelete: Cascade)
+  lastReadAt DateTime @default(now())
+
+  @@unique([userId, memberId])
+  @@index([memberId])
 }
 
 /// Catalog row. durationDays is 30, 60, or 90. verifier selects the progress rule in lib/challenges.ts.
