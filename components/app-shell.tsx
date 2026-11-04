@@ -250,15 +250,15 @@ function NavLink({
 }) {
   const className = `flex items-center justify-between gap-3 rounded-md border-l-2 px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
     active
-      ? "border-gold bg-gold/15 text-gold"
-      : "border-transparent text-muted hover:bg-surface hover:text-ink"
+      ? "border-gold bg-gold/25 text-ink"
+      : "border-transparent text-ink/90 hover:bg-surface hover:text-ink"
   }`;
 
   if (external) {
     return (
       <CommunityAnchor url={href} className={className} onClick={onNavigate}>
         <span>{label}</span>
-        <span aria-hidden="true" className="text-[11px] text-gold-muted">
+        <span aria-hidden="true" className="text-[11px] text-gold">
           ↗
         </span>
       </CommunityAnchor>
@@ -289,7 +289,7 @@ function AccountCard({
     <div className="shrink-0 border-t border-gold/25 p-4">
       <p className="text-[11px] uppercase tracking-[0.18em] text-gold">Signed in</p>
       <p className="mt-2 text-sm font-medium text-ink">{user.name}</p>
-      <p className="text-xs text-gold-muted">{roleTitle(user.role)}</p>
+      <p className="text-xs text-gold">{roleTitle(user.role)}</p>
       <p className="mt-1 truncate text-xs text-muted">{user.email}</p>
       <form action={signOutAction}>
         <button type="submit" className="wc-btn wc-btn-primary mt-3 w-full">

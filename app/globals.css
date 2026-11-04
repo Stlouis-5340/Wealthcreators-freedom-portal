@@ -28,14 +28,14 @@
   color-scheme: light;
 }
 
-/* Green frame. Descendants pick up cream type and bright gold labels. */
+/* Green frame, lifted from #0B3312 so labels read on a visible green. */
 .wc-chrome {
-  --background: #0b3312;
-  --surface: #123f1a;
-  --surface-raised: #1b5526;
+  --background: #166434;
+  --surface: #1d7a40;
+  --surface-raised: #228848;
   --ink: #f7f3e6;
-  --muted: #d5e0cc;
-  --line: #3d8a52;
+  --muted: #f3f6ee;
+  --line: #4eae6c;
   --gold-ink: #ffcd55;
   --gold-ink-bright: #ffe7a8;
   --gold-ink-muted: #ffb04e;
