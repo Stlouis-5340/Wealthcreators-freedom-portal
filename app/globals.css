@@ -28,14 +28,14 @@
   color-scheme: light;
 }
 
-/* Green frame, lifted from #0B3312 so labels read on a visible green. */
+/* Deep brand green frame. Nav type is enlarged separately so labels stay clear. */
 .wc-chrome {
-  --background: #166434;
-  --surface: #1d7a40;
-  --surface-raised: #228848;
+  --background: #0b3312;
+  --surface: #123f1a;
+  --surface-raised: #1b5526;
   --ink: #f7f3e6;
   --muted: #f3f6ee;
-  --line: #4eae6c;
+  --line: #3d8a52;
   --gold-ink: #ffcd55;
   --gold-ink-bright: #ffe7a8;
   --gold-ink-muted: #ffb04e;
