@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { GuideCommunity } from "@/components/guide-community";
 import { GuideCoachingReport } from "@/components/guide-coaching-report";
 import { GuideSharedScenarios } from "@/components/guide-scenarios";
 import { MemberView } from "@/components/views/member-view";
@@ -31,6 +32,7 @@ export default async function Page({
     <MemberView memberId={memberId}>
       <GuideCoachingReport memberId={memberId} monthKey={month ?? null} />
       <GuideSharedScenarios memberId={memberId} />
+      <GuideCommunity memberId={memberId} />
     </MemberView>
   );
 }

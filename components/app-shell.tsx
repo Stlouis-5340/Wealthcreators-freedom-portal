@@ -22,6 +22,9 @@ const memberNav = [
   { href: "/assets", label: "Net Worth" },
   { href: "/spending", label: "Spending Plan" },
   { href: "/milestones", label: "Milestones" },
+  { href: "/challenges", label: "Challenges" },
+  { href: "/recognition", label: "Recognition" },
+  { href: "/life", label: "Life" },
   { href: "/settings", label: "Guide access" },
   securityLink,
 ];
@@ -73,8 +76,8 @@ export function AppShell({
   function handleReset() {
     const confirmed = window.confirm(
       user.role === "guide"
-        ? "Reset seeded plans and steps for your assigned members? Plaid connections stay in place."
-        : "Reset your spending plan, sample balances, and steps to the seeded sample? Plaid connections stay in place.",
+        ? "Reset seeded plans, steps, challenges, and recognition for your assigned members? Plaid connections stay in place."
+        : "Reset your spending plan, sample balances, steps, challenges, and life measures to the seeded sample? Plaid connections stay in place.",
     );
     if (!confirmed) return;
     resetDemo();
@@ -147,7 +150,9 @@ export function AppShell({
             Freedom Score, Freedom Gap, Freedom Quality, yield, Wealth Efficiency, and the
             forecast are educational planning tools, not investment advice. An assumed yield
             is an illustration. Returns are not guaranteed. A saved scenario stays private
-            until you share it with your Wealth Guide.
+            until you share it with your Wealth Guide. Challenges and recognition
+            stay off the public site. A recognition card never shows balances.
+            Life measures are what you report, and they do not change Freedom Score.
           </p>
         </main>
       </div>
