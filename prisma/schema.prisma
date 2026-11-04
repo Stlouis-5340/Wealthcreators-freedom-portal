@@ -62,6 +62,7 @@ model User {
   lessonCompletions LessonCompletion[]
   achievements      Achievement[]
   lifeMetrics       LifeMetrics?
+  legacyPlan        LegacyPlan?
   groupsCreated     AccountabilityGroup[] @relation("GroupCreator")
 }
 
@@ -294,7 +295,8 @@ model MonthlyReport {
 }
 
 /// What an assigned Guide may see. Category spending and transactions are not scopes in v1.
-/// scopes is JSON: score, totals, goals, checkIns, tasks, education. revokedAt null means the grant is on.
+/// scopes is JSON: score, totals, goals, checkIns, tasks, education, legacy.
+/// legacy stays off until the member opts in. revokedAt null means the grant is on.
 model GuideAccessGrant {
   id        String    @id @default(cuid())
   memberId  String
@@ -596,4 +598,95 @@ model LifeMetrics {
   healthStreakDays   Int?
   experiencesPlanned String   @default("")
   updatedAt          DateTime @updatedAt
+}
+
+/// One legacy organizer per member. Narrative fields are the member's own words.
+/// Educational notes only. Not a will, trust, or legal filing. No SSN column exists.
+model LegacyPlan {
+  memberId             String   @id
+  member               User     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  /// not_started, exploring, drafted, signed, funded, reviewing, or na.
+  trustStatus          String   @default("not_started")
+  trustNotes           String   @default("")
+  educationGoals       String   @default("")
+  charitableIntentions String   @default("")
+  priorities           String   @default("")
+  updatedAt            DateTime @updatedAt
+
+  checklist     LegacyChecklistItem[]
+  beneficiaries LegacyBeneficiary[]
+  insurance     LegacyInsurance[]
+  documents     LegacyDocument[]
+}
+
+/// Estate and legacy checklist. status is not_started, in_progress, done, or na.
+/// questions are notes for a qualified professional. Do not store SSNs or account numbers.
+model LegacyChecklistItem {
+  id        String     @id @default(cuid())
+  planId    String
+  plan      LegacyPlan @relation(fields: [planId], references: [memberId], onDelete: Cascade)
+  key       String
+  area      String
+  title     String
+  detail    String     @default("")
+  status    String     @default("not_started")
+  questions String     @default("")
+  sort      Int
+  updatedAt DateTime   @updatedAt
+
+  @@unique([planId, key])
+  @@index([planId])
+}
+
+/// A person or charity the member wants remembered. No SSN, tax id, or account number.
+model LegacyBeneficiary {
+  id           String     @id @default(cuid())
+  planId       String
+  plan         LegacyPlan @relation(fields: [planId], references: [memberId], onDelete: Cascade)
+  name         String
+  relationship String
+  /// primary or contingent.
+  role         String     @default("primary")
+  notes        String     @default("")
+  sort         Int
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([planId])
+}
+
+/// Coverage summary only. Do not store policy numbers.
+model LegacyInsurance {
+  id        String     @id @default(cuid())
+  planId    String
+  plan      LegacyPlan @relation(fields: [planId], references: [memberId], onDelete: Cascade)
+  kind      String
+  carrier   String     @default("")
+  summary   String
+  /// in_force, reviewing, none, or unknown.
+  status    String     @default("unknown")
+  notes     String     @default("")
+  sort      Int
+  updatedAt DateTime   @updatedAt
+
+  @@index([planId])
+}
+
+/// Document metadata. Bytes are not stored.
+/// storageKey is a private placeholder path, never a public URL.
+/// TODO: when BLOB_READ_WRITE_TOKEN is configured, upload with private access and store only the pathname here.
+model LegacyDocument {
+  id           String     @id @default(cuid())
+  planId       String
+  plan         LegacyPlan @relation(fields: [planId], references: [memberId], onDelete: Cascade)
+  title        String
+  kind         String
+  locationNote String     @default("")
+  fileName     String     @default("")
+  storageKey   String     @default("")
+  notes        String     @default("")
+  recordedAt   DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([planId])
 }

@@ -1,6 +1,7 @@
 "use server";
 
 import { resetCommunityForMembers } from "@/lib/community-store";
+import { resetLegacyForMembers } from "@/lib/legacy-store";
 import {
   loadPortalSnapshot,
   resetSeededPlans,
@@ -91,6 +92,7 @@ export async function resetPlanAction() {
   if (user.role === "member") {
     await resetSeededPlans([user.id]);
     await resetCommunityForMembers([user.id]);
+    await resetLegacyForMembers([user.id]);
   } else if (user.role === "guide") {
     const assignments = await prisma.guideAssignment.findMany({
       where: { guideId: user.id },
@@ -99,6 +101,7 @@ export async function resetPlanAction() {
     const memberIds = assignments.map((assignment) => assignment.memberId);
     await resetSeededPlans(memberIds);
     await resetCommunityForMembers(memberIds);
+    await resetLegacyForMembers(memberIds);
   }
   return loadPortalSnapshot({ id: user.id, role: user.role });
 }

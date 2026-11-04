@@ -54,6 +54,7 @@ const hidden: GuideAccess = {
   checkIns: false,
   tasks: true,
   education: false,
+  legacy: false,
 };
 const scoreCard = presentAchievementForGuide(
   { key: "score-50", visibility: "guide", unlockedAt: "2026-11-03T18:00:00.000Z" },

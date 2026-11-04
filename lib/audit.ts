@@ -22,6 +22,8 @@ export const AUDIT_ACTIONS = [
   "member.hide_achievement",
   "guide.view_challenges",
   "guide.view_recognition",
+  "member.update_legacy",
+  "guide.view_legacy",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
@@ -47,6 +49,8 @@ export const AUDIT_LABELS: Record<AuditAction, string> = {
   "member.hide_achievement": "Member made recognition private",
   "guide.view_challenges": "Guide opened challenge enrollments",
   "guide.view_recognition": "Guide opened shared recognition",
+  "member.update_legacy": "Member updated legacy notes",
+  "guide.view_legacy": "Guide opened a shared legacy plan",
 };
 
 const blockedKey = /token|secret|password|mask|plaid|hash|recovery|otp|code/i;

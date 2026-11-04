@@ -36,10 +36,16 @@ export function GuideAccessForm({
         label="Learning progress: lessons finished and quiz scores, not the answers"
         defaultChecked={access.education}
       />
+      <Toggle
+        name="legacy"
+        label="Legacy planner: beneficiaries, checklist, insurance summaries, and document titles. Off until you turn it on. Files are not included."
+        defaultChecked={access.legacy}
+      />
       <p className="text-xs leading-5 text-muted">
         Check-ins include the words you wrote and the score snapshot from that week. Coaching tasks
         your Guide assigns stay visible so follow-ups are not lost. Category spending and
         transactions stay off. Guides never see bank names, account numbers, or connection tokens.
+        Legacy stays private, including beneficiaries and document titles, until you check it.
       </p>
       {state.error ? (
         <p role="alert" className="text-sm text-danger">

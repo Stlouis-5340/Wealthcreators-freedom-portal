@@ -51,6 +51,8 @@ function isMemberPath(pathname: string): boolean {
     pathname.startsWith("/recognition/") ||
     pathname === "/life" ||
     pathname.startsWith("/life/") ||
+    pathname === "/legacy" ||
+    pathname.startsWith("/legacy/") ||
     pathname === "/report" ||
     /^\/reports\/\d{4}-\d{2}$/.test(pathname)
   );

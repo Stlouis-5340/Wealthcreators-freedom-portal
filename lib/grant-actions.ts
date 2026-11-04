@@ -31,6 +31,7 @@ export async function updateGuideAccessAction(
     goals: formData.get("goals") === "on",
     checkIns: formData.get("checkIns") === "on",
     education: formData.get("education") === "on",
+    legacy: formData.get("legacy") === "on",
   });
   const scopes = serializeGuideAccess(access);
   const current = await prisma.guideAccessGrant.findFirst({

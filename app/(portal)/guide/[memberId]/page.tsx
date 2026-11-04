@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { GuideCoachInsights } from "@/components/guide-coach-insights";
 import { GuideCommunity } from "@/components/guide-community";
+import { GuideLegacy } from "@/components/guide-legacy";
 import { GuideCoachingReport } from "@/components/guide-coaching-report";
 import { GuideLearningPanel } from "@/components/guide-learning-panel";
 import { GuideSharedScenarios } from "@/components/guide-scenarios";
@@ -39,6 +40,7 @@ export default async function Page({
       <GuideLearningPanel memberId={memberId} />
       <GuideWorkspace memberId={memberId} />
       <GuideCommunity memberId={memberId} />
+      <GuideLegacy memberId={memberId} />
     </MemberView>
   );
 }
