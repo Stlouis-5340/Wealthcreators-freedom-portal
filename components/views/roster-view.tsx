@@ -58,12 +58,12 @@ export function RosterView() {
               onClick={() => setFilter(item.id)}
               className={`rounded-full border px-3 py-1.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
                 active
-                  ? "border-gold bg-gold text-background"
+                  ? "border-gold bg-gold text-[#0b3312]"
                   : "border-line text-muted hover:border-gold-muted hover:text-ink"
               }`}
             >
               {item.label}
-              <span className={active ? "text-background/70" : "text-muted"}> · {counts[item.id]}</span>
+              <span className={active ? "text-[#0b3312]/70" : "text-muted"}> · {counts[item.id]}</span>
             </button>
           );
         })}

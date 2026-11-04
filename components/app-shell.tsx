@@ -119,7 +119,7 @@ export function AppShell({
       <a className="skip-link" href="#content">
         Skip to content
       </a>
-      <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-[280px] flex-col overflow-y-auto border-r border-gold/25 bg-background lg:flex">
+      <aside className="wc-chrome no-print fixed inset-y-0 left-0 z-30 hidden w-[280px] flex-col overflow-y-auto border-r border-gold/30 lg:flex">
         <div className="shrink-0 px-5 pt-7">
           <Link href={homeHref} className="block rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold">
             <BrandLogo className="h-auto w-full" priority />
@@ -146,7 +146,7 @@ export function AppShell({
       </aside>
 
         <div className="portal-main lg:pl-[280px]">
-        <header className="no-print sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-gold/25 bg-background/95 px-4 py-3 backdrop-blur lg:hidden">
+        <header className="wc-chrome no-print sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-gold/30 px-4 py-3 lg:hidden">
           <Link href={homeHref} className="min-w-0 rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold">
             <BrandLogo className="h-12 w-auto" priority />
           </Link>
@@ -204,7 +204,7 @@ export function AppShell({
           />
           <div
             id="mobile-nav"
-            className="absolute inset-y-0 right-0 flex w-[min(100%,320px)] flex-col overflow-y-auto border-l border-gold/30 bg-background"
+            className="wc-chrome absolute inset-y-0 right-0 flex w-[min(100%,320px)] flex-col overflow-y-auto border-l border-gold/30"
           >
             <div className="flex shrink-0 items-center justify-between px-4 py-4">
               <p className="wc-eyebrow">Freedom Portal</p>
@@ -269,7 +269,7 @@ function NavLink({
     <Link href={href} aria-current={active ? "page" : undefined} onClick={onNavigate} className={className}>
       <span>{label}</span>
       {badge > 0 ? (
-        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-gold px-1.5 text-[11px] font-semibold text-background">
+        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-gold px-1.5 text-[11px] font-semibold">
           {badge > 9 ? "9+" : badge}
           <span className="sr-only"> unread notes</span>
         </span>
