@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { InvitePanel } from "@/components/invites/invite-panel";
 import { GuideMightyNetworksLink } from "@/components/mighty-networks-link";
 import { CommandCenterView } from "@/components/views/command-center-view";
 import { RosterView } from "@/components/views/roster-view";
@@ -17,6 +18,7 @@ export default async function Page() {
         <GuideMightyNetworksLink url={communityUrl} />
         <CommandCenterView />
       </div>
+      <InvitePanel audience="guide" />
       <RosterView />
     </div>
   );

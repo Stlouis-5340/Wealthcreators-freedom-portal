@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PeopleManager } from "@/components/admin/people-manager";
+import { InvitePanel } from "@/components/invites/invite-panel";
 import { PageHeader } from "@/components/page-header";
 import { isPortalRole } from "@/auth";
 import { integrityCensus } from "@/lib/plan-store";
@@ -55,7 +56,7 @@ export default async function Page() {
       <PageHeader
         eyebrow="Admin"
         title="People"
-        lede="Roles, Guide assignments, and who can sign in. Pausing an account blocks the next sign-in. It does not delete a plan."
+        lede="Roles, Guide assignments, member invites, and who can sign in. Pausing an account blocks the next sign-in. It does not delete a plan."
       />
       <p className="max-w-3xl text-sm leading-6 text-muted">
         Program outcomes are on{" "}
@@ -82,6 +83,7 @@ export default async function Page() {
         or a dated confirmation older than 14 days is stale. Missing means that figure has no lines.
         This is a count, not a ranking of Guides.
       </p>
+      <InvitePanel audience="admin" />
       <PeopleManager people={people} guides={guides} viewerId={admin.id} />
     </div>
   );

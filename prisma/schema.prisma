@@ -66,6 +66,8 @@ model User {
   lifeMetrics       LifeMetrics?
   legacyPlan        LegacyPlan?
   groupsCreated     AccountabilityGroup[] @relation("GroupCreator")
+  invitesCreated    MemberInvite[]        @relation("InviteCreator")
+  invitesGuiding    MemberInvite[]        @relation("InviteGuide")
 }
 
 model GuideAssignment {
@@ -691,4 +693,24 @@ model LegacyDocument {
   updatedAt    DateTime   @updatedAt
 
   @@index([planId])
+}
+
+/// Single-use member invite. tokenHash is the SHA-256 of the link token. The raw token is not stored.
+model MemberInvite {
+  id          String    @id @default(cuid())
+  email       String
+  name        String    @default("")
+  tokenHash   String    @unique
+  createdById String
+  createdBy   User      @relation("InviteCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  guideId     String?
+  guide       User?     @relation("InviteGuide", fields: [guideId], references: [id], onDelete: SetNull)
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([email])
+  @@index([createdById])
+  @@index([guideId])
 }

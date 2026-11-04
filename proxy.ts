@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth, isPortalRole } from "@/auth";
 import { homeForRole } from "@/lib/demo-accounts";
+import { isPublicInvitePath } from "@/lib/invite-path";
 
 const publicPaths = new Set(["/login", "/signup"]);
 
@@ -66,12 +67,14 @@ export const proxy = auth((req) => {
   const signedIn = isPortalRole(role);
 
   if (!signedIn) {
-    if (publicPaths.has(pathname)) return NextResponse.next();
+    if (publicPaths.has(pathname) || isPublicInvitePath(pathname)) return NextResponse.next();
     const login = req.nextUrl.clone();
     login.pathname = "/login";
     login.search = "";
     return NextResponse.redirect(login);
   }
+
+  if (isPublicInvitePath(pathname)) return NextResponse.next();
 
   const monthOnly = pathname.match(/^\/reports\/(\d{4}-\d{2})$/);
   if (monthOnly && role === "member" && req.auth?.user?.id) {

@@ -1,8 +1,10 @@
 import { fullGuideAccess, serializeGuideAccess } from "../lib/access";
 import { resetCommunityForMembers } from "../lib/community-store";
+import { DEMO_INVITE } from "../lib/demo-invite";
 import { resetLegacyForMembers } from "../lib/legacy-store";
 import { demoAccounts } from "../lib/demo-accounts";
 import { prisma } from "../lib/db";
+import { hashInviteToken, INVITE_TTL_MS } from "../lib/invite-token";
 import { hashPassword } from "../lib/passwords";
 import { replaceMemberPlan } from "../lib/plan-store";
 import { encodeReportJson } from "../lib/report";
@@ -194,6 +196,29 @@ async function main() {
   await resetCommunityForMembers(memberIds);
   await resetLegacyForMembers(memberIds);
   await seedLeadershipSignals(memberIds);
+  await seedSampleInvite();
+}
+
+async function seedSampleInvite(): Promise<void> {
+  const expiresAt = new Date(Date.now() + INVITE_TTL_MS);
+  const data = {
+    email: DEMO_INVITE.email,
+    name: DEMO_INVITE.name,
+    tokenHash: hashInviteToken(DEMO_INVITE.token),
+    createdById: DEMO_INVITE.createdById,
+    guideId: DEMO_INVITE.guideId,
+    expiresAt,
+  };
+  const existing = await prisma.memberInvite.findUnique({ where: { id: DEMO_INVITE.id } });
+  if (!existing) {
+    await prisma.memberInvite.create({ data: { id: DEMO_INVITE.id, ...data } });
+    return;
+  }
+  if (existing.acceptedAt) return;
+  await prisma.memberInvite.update({
+    where: { id: DEMO_INVITE.id },
+    data: { ...data, revokedAt: null },
+  });
 }
 
 main()
