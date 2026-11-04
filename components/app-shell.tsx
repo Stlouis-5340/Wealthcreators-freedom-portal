@@ -152,7 +152,7 @@ export function AppShell({
           </Link>
           <button
             type="button"
-            className="wc-btn wc-btn-ghost shrink-0"
+            className="wc-btn wc-btn-ghost shrink-0 text-base font-semibold"
             aria-expanded={menuOpen}
             aria-controls="mobile-nav"
             onClick={() => setMenuOpen((open) => !open)}
@@ -208,7 +208,7 @@ export function AppShell({
           >
             <div className="flex shrink-0 items-center justify-between px-4 py-4">
               <p className="wc-eyebrow">Freedom Portal</p>
-              <button type="button" className="wc-btn wc-btn-ghost" onClick={() => setMenuOpen(false)}>
+              <button type="button" className="wc-btn wc-btn-ghost text-base font-semibold" onClick={() => setMenuOpen(false)}>
                 Close
               </button>
             </div>
@@ -248,10 +248,10 @@ function NavLink({
   badge?: number;
   onNavigate: () => void;
 }) {
-  const className = `flex items-center justify-between gap-3 rounded-md border-l-2 px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
+  const className = `flex items-center justify-between gap-3 rounded-md border-l-[3px] px-3.5 py-3 text-base leading-5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
     active
-      ? "border-gold bg-gold/25 text-ink"
-      : "border-transparent text-ink/90 hover:bg-surface hover:text-ink"
+      ? "border-gold bg-gold/20 font-bold text-gold"
+      : "border-transparent font-semibold text-ink hover:bg-surface hover:text-ink"
   }`;
 
   if (external) {
