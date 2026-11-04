@@ -28,7 +28,7 @@ export function FreedomRing({ score }: { score: number | null }) {
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#2A2A2A"
+          stroke="var(--line)"
           strokeWidth={stroke}
         />
         <circle
@@ -36,7 +36,7 @@ export function FreedomRing({ score }: { score: number | null }) {
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke={surplus ? "#F0C050" : "#E8B84A"}
+          stroke={surplus ? "var(--gold-bright)" : "var(--gold)"}
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={circumference}

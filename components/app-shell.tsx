@@ -119,14 +119,15 @@ export function AppShell({
       <a className="skip-link" href="#content">
         Skip to content
       </a>
-      <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-[280px] flex-col overflow-y-auto border-r border-line bg-surface lg:flex">
-        <div className="shrink-0 px-5 pt-6">
-          <Link href={homeHref} className="block rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold">
+      <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-[280px] flex-col overflow-y-auto border-r border-gold/25 bg-background lg:flex">
+        <div className="shrink-0 px-5 pt-7">
+          <Link href={homeHref} className="block rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold">
             <BrandLogo className="h-auto w-full" priority />
           </Link>
-          <p className="mt-3 text-center text-[11px] font-medium uppercase tracking-[0.22em] text-gold-muted">
+          <p className="mt-4 text-center text-[11px] font-medium uppercase tracking-[0.28em] text-gold">
             Freedom Portal
           </p>
+          <div className="mx-auto mt-4 h-px w-14 bg-gold/80" />
         </div>
         <nav className="mt-6 min-h-min flex-1 space-y-1 px-3" aria-label="Primary">
           {links.map((item) => (
@@ -145,9 +146,9 @@ export function AppShell({
       </aside>
 
         <div className="portal-main lg:pl-[280px]">
-        <header className="no-print sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-line bg-background/95 px-4 py-3 backdrop-blur lg:hidden">
-          <Link href={homeHref} className="min-w-0">
-            <BrandLogo className="h-[72px] w-auto" priority />
+        <header className="no-print sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-gold/25 bg-background/95 px-4 py-3 backdrop-blur lg:hidden">
+          <Link href={homeHref} className="min-w-0 rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold">
+            <BrandLogo className="h-12 w-auto" priority />
           </Link>
           <button
             type="button"
@@ -161,7 +162,7 @@ export function AppShell({
         </header>
         <main id="content" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-10 lg:py-10">
           {showMfaBanner ? (
-            <p className="mb-6 rounded-2xl border border-gold/50 bg-surface px-4 py-3 text-sm leading-6">
+            <p className="wc-card mb-6 px-4 py-3 text-sm leading-6">
               <span className="font-medium text-ink">Add an authenticator app.</span>{" "}
               <span className="text-muted">
                 Guides and admins are asked to turn on a second sign-in step. Demo password sign-in
@@ -197,13 +198,13 @@ export function AppShell({
         <div className="no-print fixed inset-0 z-40 lg:hidden">
           <button
             type="button"
-            className="absolute inset-0 bg-black/70"
+            className="absolute inset-0 bg-scrim"
             aria-label="Close menu"
             onClick={() => setMenuOpen(false)}
           />
           <div
             id="mobile-nav"
-            className="absolute inset-y-0 right-0 flex w-[min(100%,320px)] flex-col overflow-y-auto border-l border-line bg-surface"
+            className="absolute inset-y-0 right-0 flex w-[min(100%,320px)] flex-col overflow-y-auto border-l border-gold/30 bg-background"
           >
             <div className="flex shrink-0 items-center justify-between px-4 py-4">
               <p className="wc-eyebrow">Freedom Portal</p>
@@ -247,10 +248,10 @@ function NavLink({
   badge?: number;
   onNavigate: () => void;
 }) {
-  const className = `flex items-center justify-between gap-3 rounded-xl border-l-2 px-3 py-2.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
+  const className = `flex items-center justify-between gap-3 rounded-md border-l-2 px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
     active
-      ? "border-gold bg-surface-raised text-ink"
-      : "border-transparent text-muted hover:bg-surface-raised hover:text-ink"
+      ? "border-gold bg-gold/15 text-gold"
+      : "border-transparent text-muted hover:bg-surface hover:text-ink"
   }`;
 
   if (external) {
@@ -285,8 +286,8 @@ function AccountCard({
   onReset: () => void;
 }) {
   return (
-    <div className="shrink-0 border-t border-line p-4">
-      <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Signed in</p>
+    <div className="shrink-0 border-t border-gold/25 p-4">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-gold">Signed in</p>
       <p className="mt-2 text-sm font-medium text-ink">{user.name}</p>
       <p className="text-xs text-gold-muted">{roleTitle(user.role)}</p>
       <p className="mt-1 truncate text-xs text-muted">{user.email}</p>

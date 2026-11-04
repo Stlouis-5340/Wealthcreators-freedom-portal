@@ -47,7 +47,8 @@ export function MemberView({
         <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="wc-eyebrow">Member progress</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">{member.name}</h1>
+            <div className="wc-rule" />
+            <h1 className="mt-4 text-4xl sm:text-5xl">{member.name}</h1>
             <p className="mt-2 text-sm text-muted">
               Last active {formatDate(member.lastActive)} · {relativeDay(member.lastActive)}
             </p>

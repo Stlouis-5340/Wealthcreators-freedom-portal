@@ -43,7 +43,8 @@ export function DashboardView() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="wc-eyebrow">Member dashboard</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">{viewer.name}</h1>
+          <div className="wc-rule" />
+          <h1 className="mt-4 text-4xl sm:text-5xl">{viewer.name}</h1>
           <p className="mt-2 text-sm text-muted">
             Wealth Guide {GUIDE.name}. Passive income, measured against the spending plan.
           </p>

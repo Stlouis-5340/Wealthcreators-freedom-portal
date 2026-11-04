@@ -1,18 +1,24 @@
 @import "tailwindcss";
 
+/*
+  Wealth Creators Live — PRIMARY brand book, December 2024.
+  Deep Green #0B3312, Bright Gold #FFCD55, Vibrant Gold-Orange #FFB04E.
+  Surfaces stay in that green family. Black is not a brand color.
+*/
 :root {
-  --background: #0a0a0a;
-  --surface: #111111;
-  --surface-raised: #1a1a1a;
-  --gold: #e8b84a;
-  --gold-bright: #f0c050;
-  --gold-muted: #c49a3a;
-  --ink: #f5f5f5;
-  --muted: #a3a3a3;
-  --line: #2a2a2a;
-  --success: #7dbe8a;
-  --warning: #d7a15a;
-  --danger: #c47b7b;
+  --background: #0b3312;
+  --surface: #145222;
+  --surface-raised: #1c642c;
+  --gold: #ffcd55;
+  --gold-bright: #ffe7a8;
+  --gold-muted: #ffb04e;
+  --ink: #f7f3e6;
+  --muted: #d5e0cc;
+  --line: #3d8a52;
+  --success: #b7e3a8;
+  --warning: #ffb04e;
+  --danger: #f3c1b8;
+  --scrim: rgb(11 51 18 / 0.82);
   color-scheme: dark;
 }
 
@@ -29,47 +35,99 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --color-scrim: var(--scrim);
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-cormorant), "Iowan Old Style", Palatino, "Palatino Linotype", serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
 
 body {
   background:
-    radial-gradient(900px 420px at 8% -10%, rgba(232, 184, 74, 0.09), transparent 55%),
+    radial-gradient(980px 520px at 0% -8%, rgb(255 205 85 / 0.14), transparent 56%),
+    radial-gradient(820px 480px at 100% 0%, rgb(255 176 78 / 0.1), transparent 52%),
     var(--background);
   color: var(--ink);
   font-family: var(--font-sans);
   font-variant-numeric: tabular-nums;
 }
 
+body::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.9'/%3E%3C/svg%3E");
+}
+
 ::selection {
-  background: #e8b84a;
-  color: #0a0a0a;
+  background: #ffcd55;
+  color: #0b3312;
+}
+
+h1,
+h2,
+.text-5xl,
+.text-4xl {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.025em;
 }
 
 @layer components {
   .wc-card {
-    @apply rounded-2xl border border-line bg-surface;
+    border-radius: 1.25rem;
+    border: 1px solid rgb(255 205 85 / 0.32);
+    background:
+      linear-gradient(180deg, rgb(255 205 85 / 0.08), transparent 42%),
+      var(--surface);
+    box-shadow:
+      inset 0 1px 0 rgb(247 243 230 / 0.06),
+      0 18px 40px rgb(6 28 12 / 0.28);
+    transition:
+      border-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  a.wc-card:hover,
+  .wc-card:has(a:hover) {
+    border-color: rgb(255 205 85 / 0.62);
+  }
+
+  a.wc-card:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
   }
 
   .wc-eyebrow {
-    @apply text-[11px] font-medium uppercase tracking-[0.16em] text-gold-muted;
+    @apply text-[11px] font-medium uppercase tracking-[0.22em] text-gold;
+  }
+
+  .wc-rule {
+    @apply mt-4 h-px w-14 bg-gold;
   }
 
   .wc-btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold;
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium tracking-wide transition-[background-color,border-color,color,box-shadow] duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .wc-btn-primary {
-    @apply bg-gold text-background hover:bg-gold-bright;
+    background: var(--gold);
+    color: var(--background);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35);
+  }
+
+  .wc-btn-primary:hover:not(:disabled) {
+    background: var(--gold-bright);
   }
 
   .wc-btn-ghost {
-    @apply border border-line bg-transparent text-ink hover:border-gold-muted hover:bg-surface-raised;
+    @apply border border-gold/40 bg-transparent text-ink hover:border-gold hover:bg-surface-raised;
   }
 
   .wc-input {
-    @apply w-full rounded-xl border border-line bg-background px-3 py-2 text-sm text-ink outline-none focus:border-gold;
+    @apply w-full rounded-md border border-line bg-background px-3 py-2.5 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-muted/80 focus:border-gold focus:shadow-[0_0_0_3px_rgb(255_205_85_/_0.22)];
   }
 }
 
@@ -77,11 +135,11 @@ body {
   position: absolute;
   left: 1rem;
   top: 1rem;
-  z-index: 50;
+  z-index: 80;
   transform: translateY(-200%);
-  border-radius: 999px;
-  background: #e8b84a;
-  color: #0a0a0a;
+  border-radius: 0.375rem;
+  background: #ffcd55;
+  color: #0b3312;
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
   font-weight: 600;
@@ -89,24 +147,42 @@ body {
 
 .skip-link:focus {
   transform: none;
+  outline: 2px solid #f7f3e6;
+  outline-offset: 2px;
 }
 
 input[type="checkbox"],
-input[type="radio"] {
-  accent-color: #e8b84a;
+input[type="radio"],
+input[type="range"] {
+  accent-color: #ffcd55;
 }
 
 input[type="number"] {
   color-scheme: dark;
 }
 
-input[type="range"] {
-  accent-color: #e8b84a;
+@media (prefers-reduced-motion: no-preference) {
+  .portal-main > main,
+  .auth-stage {
+    animation: wc-rise 420ms ease both;
+  }
+}
+
+@keyframes wc-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @media print {
   .no-print,
-  .skip-link {
+  .skip-link,
+  body::before {
     display: none !important;
   }
 
@@ -116,7 +192,7 @@ input[type="range"] {
 
   body {
     background: #fff !important;
-    color: #1a1a1a !important;
+    color: #0b3312 !important;
   }
 
   .wc-card,
@@ -124,7 +200,7 @@ input[type="range"] {
   .bg-surface-raised,
   .bg-background {
     background: #fff !important;
-    border-color: #d4d4d4 !important;
+    border-color: #c5b48a !important;
     box-shadow: none !important;
   }
 
@@ -138,13 +214,13 @@ input[type="range"] {
   li,
   dd,
   dt {
-    color: #1a1a1a !important;
+    color: #0b3312 !important;
   }
 
   .text-gold,
   .text-gold-muted,
   .wc-eyebrow {
-    color: #8a6a1f !important;
+    color: #8a6414 !important;
   }
 
   .text-success {
