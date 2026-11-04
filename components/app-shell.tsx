@@ -13,6 +13,7 @@ const securityLink = { href: "/security", label: "Security" };
 
 const memberNav = [
   { href: "/", label: "Dashboard" },
+  { href: "/coach", label: "Coach" },
   { href: "/report", label: "Report" },
   { href: "/check-in", label: "Check-in" },
   { href: "/gap", label: "Freedom Gap" },
@@ -151,7 +152,8 @@ export function AppShell({
             and guides see only the parts a member has shared, not bank names, category
             spending, or account numbers. Weekly check-ins and the Freedom Report are coaching tools.
             Freedom Score, Freedom Gap, Freedom Quality, yield, Wealth Efficiency, and the
-            forecast are educational planning tools, not investment advice. An assumed yield
+            forecast are educational planning tools, not investment advice. The Freedom Coach
+            is educational guidance, not financial, tax, legal, or investment advice. An assumed yield
             is an illustration. Returns are not guaranteed. A saved scenario stays private
             until you share it with your Wealth Guide.
           </p>

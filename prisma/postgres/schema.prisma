@@ -49,6 +49,8 @@ model User {
   grantsAsGuide  GuideAccessGrant[] @relation("GrantGuide")
   auditLogs      AuditLog[]
   scenarios      ScenarioRun[]
+  coachThreads   CoachThread[]
+  actionPlans    FreedomActionPlan[]
   lessonProgress LessonProgress[]
   quizAttempts   QuizAttempt[]
   hubMessages    HubMessage[]     @relation("HubAuthor")
@@ -337,6 +339,49 @@ model ScenarioRun {
 
   @@index([memberId])
   @@index([memberId, sharedWithGuide])
+}
+
+/// One Freedom Coach conversation per member. Messages stay when the monthly plan is refreshed.
+model CoachThread {
+  id        String         @id @default(cuid())
+  memberId  String
+  member    User           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  messages  CoachMessage[]
+
+  @@index([memberId])
+}
+
+/// role is "user" or "assistant". body is the visible text. No tokens or bank payloads.
+model CoachMessage {
+  id        String      @id
+  threadId  String
+  thread    CoachThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  role      String
+  body      String
+  createdAt DateTime    @default(now())
+
+  @@index([threadId, createdAt])
+}
+
+/// One Freedom Action Plan per member per America/Chicago month.
+/// actions and previousActions are JSON with three educational actions.
+/// A member refresh updates this row, keeps the prior JSON, and stamps regeneratedAt.
+model FreedomActionPlan {
+  id              String    @id @default(cuid())
+  memberId        String
+  member          User      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  monthKey        String
+  actions         String
+  previousActions String    @default("")
+  /// "seed" or "generated"
+  source          String    @default("generated")
+  generatedAt     DateTime  @default(now())
+  regeneratedAt   DateTime?
+
+  @@unique([memberId, monthKey])
+  @@index([memberId])
 }
 
 /// A curated learning path. Lessons are educational. They are not advice.

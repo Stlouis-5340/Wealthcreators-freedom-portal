@@ -6,6 +6,8 @@ import { replaceMemberPlan } from "../lib/plan-store";
 import { encodeReportJson } from "../lib/report";
 import { demoActivity } from "../lib/sample-activity";
 import { alexPriorReport } from "../lib/sample-reports";
+import { seedAlexCoach } from "../lib/coach-store";
+import { chicagoMonthKey } from "../lib/month";
 import { seedEducationAndHub } from "../lib/learn-seed";
 import { resetMemberScenarios } from "../lib/scenario-store";
 import { assignmentSeeds, guideSeed, memberSeeds } from "../lib/sample-plans";
@@ -183,6 +185,7 @@ async function main() {
 
   await resetMemberScenarios(memberIds);
   await seedEducationAndHub(memberIds);
+  await seedAlexCoach(chicagoMonthKey());
 }
 
 main()
