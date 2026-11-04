@@ -17,14 +17,14 @@ export function AuthFrame({
 }) {
   return (
     <div className="auth-stage flex min-h-screen flex-col lg:flex-row">
-      <aside className="relative flex flex-col justify-between border-b border-gold/25 px-6 py-8 sm:px-10 lg:w-[46%] lg:border-r lg:border-b-0 lg:px-14 lg:py-12">
+      <aside className="wc-chrome relative flex flex-col justify-between border-b border-gold/30 px-6 py-8 sm:px-10 lg:w-[42%] lg:border-r lg:border-b-0 lg:px-14 lg:py-12">
         <Link
           href="/login"
           className="block max-w-[280px] rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold"
         >
           <BrandLogo className="h-auto w-full" priority />
         </Link>
-        <div className="mt-10 lg:mt-0">
+        <div className="mt-8 hidden lg:block">
           <BrandMark className="mb-6 h-24 w-auto lg:h-32" />
           <p className="wc-eyebrow">Freedom Portal</p>
           <p className="mt-4 max-w-md text-4xl leading-none text-ink sm:text-5xl">
