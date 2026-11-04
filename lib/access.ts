@@ -5,6 +5,8 @@
  * totals covers net worth, passive income, the spending-plan total, and yield.
  * goals, checkIns, and tasks are the coaching record.
  * education is lesson titles, completion, and quiz scores. Quiz answers stay off.
+ * legacy is the legacy planner. It stays off until the member opts in.
+ * Even then, a Guide sees notes and titles, not document files or storage paths.
  *
  * Category spending and transactions are not scopes. They stay off in v1.
  * Guides still never receive bank names, masks, or connection tokens.
@@ -17,6 +19,7 @@ export interface GuideAccess {
   checkIns: boolean;
   tasks: boolean;
   education: boolean;
+  legacy: boolean;
 }
 
 export const fullGuideAccess: GuideAccess = {
@@ -26,9 +29,10 @@ export const fullGuideAccess: GuideAccess = {
   checkIns: true,
   tasks: true,
   education: true,
+  legacy: false,
 };
 
-const keys: (keyof GuideAccess)[] = ["score", "totals", "goals", "checkIns", "tasks", "education"];
+const keys: (keyof GuideAccess)[] = ["score", "totals", "goals", "checkIns", "tasks", "education", "legacy"];
 
 export function parseGuideAccess(raw: string | null | undefined): GuideAccess {
   if (!raw) return { ...fullGuideAccess };
@@ -52,6 +56,7 @@ export function serializeGuideAccess(access: GuideAccess): string {
     checkIns: access.checkIns,
     tasks: true,
     education: access.education,
+    legacy: access.legacy,
   });
 }
 
@@ -62,6 +67,7 @@ export function accessFromMemberToggles(input: {
   goals: boolean;
   checkIns: boolean;
   education: boolean;
+  legacy: boolean;
 }): GuideAccess {
   return {
     score: input.score,
@@ -69,6 +75,7 @@ export function accessFromMemberToggles(input: {
     goals: input.goals,
     checkIns: input.checkIns,
     education: input.education,
+    legacy: input.legacy,
     tasks: true,
   };
 }

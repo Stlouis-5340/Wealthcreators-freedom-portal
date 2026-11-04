@@ -15,6 +15,7 @@ const toggles = accessFromMemberToggles({
   goals: false,
   checkIns: true,
   education: true,
+  legacy: false,
 });
 assert(toggles.tasks === true, "tasks stay on when a member saves visibility");
 assert(serializeGuideAccess(toggles).includes('"tasks":true'), "saved scopes keep tasks on");
@@ -84,6 +85,7 @@ const hidden = applyGuideAccess(memberRow(plan), {
   checkIns: false,
   tasks: false,
   education: false,
+  legacy: false,
 });
 const payload = JSON.stringify(hidden);
 assert(!payload.includes(String(plan.assets[0]?.balance)), "hidden roster omits an asset balance");

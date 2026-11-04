@@ -28,6 +28,7 @@ const memberNav = [
   { href: "/challenges", label: "Challenges" },
   { href: "/recognition", label: "Recognition" },
   { href: "/life", label: "Life" },
+  { href: "/legacy", label: "Legacy" },
   { href: "/settings", label: "Guide access" },
   securityLink,
 ];
@@ -82,8 +83,8 @@ export function AppShell({
   function handleReset() {
     const confirmed = window.confirm(
       user.role === "guide"
-        ? "Reset seeded plans, steps, challenges, and recognition for your assigned members? Plaid connections stay in place."
-        : "Reset your spending plan, sample balances, steps, challenges, and life measures to the seeded sample? Plaid connections stay in place.",
+        ? "Reset seeded plans, steps, challenges, recognition, and legacy notes for your assigned members? Plaid connections stay in place."
+        : "Reset your spending plan, sample balances, steps, challenges, life measures, and legacy notes to the seeded sample? Plaid connections stay in place.",
     );
     if (!confirmed) return;
     resetDemo();
@@ -161,6 +162,8 @@ export function AppShell({
             until you share it with your Wealth Guide. Challenges and recognition
             stay off the public site. A recognition card never shows balances.
             Life measures are what you report, and they do not change Freedom Score.
+            The Legacy planner is an educational organizer for your notes. It is not legal, tax,
+            or insurance advice, and it does not store Social Security numbers or document files.
           </p>
         </main>
       </div>
