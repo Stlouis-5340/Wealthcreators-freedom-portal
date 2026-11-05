@@ -48,16 +48,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const { prisma } = await import("@/lib/db");
         const row = await prisma.user.findUnique({
           where: { id: token.id },
-          select: { role: true, isActive: true, mfaEnabled: true },
+          select: { role: true, isActive: true, mfaEnabled: true, passwordVersion: true },
         });
         if (!row || !row.isActive || !isPortalRole(row.role)) {
-          token.id = "";
-          token.role = undefined;
-          token.mfaEnabled = false;
-          return token;
+          return clearSession(token);
+        }
+        const freshSignIn = Boolean(user);
+        const sessionVersion = typeof token.passwordVersion === "number" ? token.passwordVersion : 0;
+        if (!freshSignIn && sessionVersion !== row.passwordVersion) {
+          return clearSession(token);
         }
         token.role = row.role;
         token.mfaEnabled = row.mfaEnabled;
+        token.passwordVersion = row.passwordVersion;
       } catch {
         return token;
       }
@@ -78,4 +81,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
 export function isPortalRole(role: unknown): role is Role {
   return role === "member" || role === "guide" || role === "admin";
+}
+
+function clearSession(token: { id?: string; role?: Role; mfaEnabled?: boolean; passwordVersion?: number }) {
+  token.id = "";
+  token.role = undefined;
+  token.mfaEnabled = false;
+  token.passwordVersion = undefined;
+  return token;
 }

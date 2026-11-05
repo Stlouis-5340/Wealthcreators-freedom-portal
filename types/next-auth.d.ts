@@ -4,6 +4,7 @@ import type { Role } from "@/lib/types";
 declare module "@auth/core/types" {
   interface User {
     role: Role;
+    passwordVersion?: number;
   }
 
   interface Session {
@@ -20,5 +21,6 @@ declare module "@auth/core/jwt" {
     id?: string;
     role?: Role;
     mfaEnabled?: boolean;
+    passwordVersion?: number;
   }
 }

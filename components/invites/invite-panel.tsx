@@ -2,20 +2,10 @@ import { InviteManager, type InviteListItem } from "@/components/invites/invite-
 import { DEMO_INVITE } from "@/lib/demo-invite";
 import { hashInviteToken, inviteUrl } from "@/lib/invite-token";
 import { listActiveGuides, listMemberInvites } from "@/lib/invite-store";
+import { mailIsConfigured } from "@/lib/mail-config";
 import { requireActor } from "@/lib/permissions";
+import { portalOrigin } from "@/lib/portal-origin";
 import { formatChicagoDateTime } from "@/lib/week";
-
-async function portalOrigin(): Promise<string> {
-  const configured = process.env.AUTH_URL?.trim();
-  if (!configured) return "http://localhost:3000";
-  try {
-    const url = new URL(configured);
-    if (url.protocol === "http:" || url.protocol === "https:") return url.origin;
-  } catch {
-    return "http://localhost:3000";
-  }
-  return "http://localhost:3000";
-}
 
 export async function InvitePanel({ audience }: { audience: "guide" | "admin" }) {
   const actor = await requireActor();
@@ -40,5 +30,5 @@ export async function InvitePanel({ audience }: { audience: "guide" | "admin" })
         : "",
   }));
 
-  return <InviteManager role={actor.role} invites={invites} guides={guides} />;
+  return <InviteManager role={actor.role} invites={invites} guides={guides} emailConfigured={mailIsConfigured()} />;
 }

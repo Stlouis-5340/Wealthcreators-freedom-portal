@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { cancelMfaAction, loginAction, type AuthFormState } from "@/lib/auth-actions";
 import { demoAccounts } from "@/lib/demo-accounts";
@@ -53,6 +54,14 @@ export function LoginForm() {
               required
             />
           </label>
+          <p className="text-right text-sm">
+            <Link
+              href="/forgot-password"
+              className="text-gold underline-offset-4 hover:text-gold-bright hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+            >
+              Forgot password?
+            </Link>
+          </p>
         </>
       )}
       {state.error ? (
