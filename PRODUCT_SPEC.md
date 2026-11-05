@@ -34,7 +34,7 @@ Gray (leave configurable): Social Security, DRIP as income vs assets-only, semi-
 
 Spending plan is the expense denominator for Freedom Score (intentional plan, not raw card noise).
 
-## Features for v1 scaffold (working UI with sample data; stub auth & Plaid)
+## Features for v1 scaffold (working UI with sample data; Plaid stays sandbox until keys are set)
 ### Member app
 - Dark Wealth Creators branded shell (sidebar or top nav)
 - **Overview**: Freedom Score, Yield on assets, Net worth, milestones/goals summary; sample editable inputs
@@ -48,9 +48,10 @@ Spending plan is the expense denominator for Freedom Score (intentional plan, no
 - Roster: Freedom Score, 6-yr goal %, this-year steps, net worth, last active
 - Filters: all / needs attention / goals behind / near line / freedom+
 - Member detail: overview + 6-yr goals monitor; **privacy**: no bank credentials, no raw transactions
+- Invite a new Member with a single-use link. The member is assigned to that Guide when they accept.
 
-### Auth (stub)
-- Demo login: Member (Alex Rivera) vs Guide (Jordan Lee) role switcher — no real auth provider required for v1
+### Auth
+Sign-in is Auth.js with email and password. New members join through a Guide or Admin invite. `/signup` does not create an account. See the README.
 
 ## Tech preferences
 - Next.js (App Router) + TypeScript + Tailwind CSS

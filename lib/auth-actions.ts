@@ -97,7 +97,7 @@ export async function signupAction(
   return {
     error: "",
     message:
-      "Wealth Creators issues member, guide, and admin accounts. This form does not create a login. Use a demo login for this preview.",
+      "Freedom Portal accounts are issued by invite. This form does not create a login.",
     mfaEmail: "",
   };
 }
