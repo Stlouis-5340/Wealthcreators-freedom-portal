@@ -6,6 +6,8 @@ import { previewMemberInvite } from "@/lib/invite-store";
 
 export const metadata: Metadata = {
   title: "Create your sign-in",
+  robots: { index: false, follow: false },
+  referrer: "no-referrer",
 };
 
 export const instant = false;

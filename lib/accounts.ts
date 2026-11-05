@@ -9,7 +9,7 @@ function isRole(role: string): role is Role {
 export type LoginLookup =
   | {
       status: "ok";
-      user: { id: string; name: string; email: string; role: Role; mfaEnabled: boolean };
+      user: { id: string; name: string; email: string; role: Role; mfaEnabled: boolean; passwordVersion: number };
     }
   | { status: "inactive" }
   | { status: "invalid" };
@@ -28,6 +28,7 @@ export async function lookupLogin(email: string, password: string): Promise<Logi
       email: user.email,
       role: user.role,
       mfaEnabled: user.mfaEnabled,
+      passwordVersion: user.passwordVersion,
     },
   };
 }

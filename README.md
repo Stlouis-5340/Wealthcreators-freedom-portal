@@ -26,7 +26,7 @@ npm install
 cp .env.example .env.local
 ```
 
-In `.env.local`, set `AUTH_SECRET` to a long random string (`openssl rand -base64 32`). Leave `AUTH_URL` as `http://localhost:3000` and `DATABASE_URL` as `file:./dev.db`. Leave `PLAID_CLIENT_ID` and `PLAID_SECRET` blank until you want Link. `PLAID_ENV` stays `sandbox`. Leave `MIGHTY_NETWORKS_URL` blank to show members Community coming soon, or set it to the community’s http or https address when that link should open. Do not commit `.env.local`.
+In `.env.local`, set `AUTH_SECRET` to a long random string (`openssl rand -base64 32`). Leave `AUTH_URL` as `http://localhost:3000` and `DATABASE_URL` as `file:./dev.db`. Leave `PLAID_CLIENT_ID` and `PLAID_SECRET` blank until you want Link. `PLAID_ENV` stays `sandbox`. Leave `MIGHTY_NETWORKS_URL` blank to show members Community coming soon, or set it to the community’s http or https address when that link should open. Leave `RESEND_API_KEY` and `EMAIL_FROM` blank until outbound email should send. Invites and the demo logins work without them. Do not commit `.env.local`.
 
 ```bash
 npm run db:migrate
@@ -43,6 +43,8 @@ npm run build
 npm run lint
 npx tsx scripts/check-leadership.ts
 npx tsx scripts/check-community-link.ts
+npx tsx scripts/check-invites.ts
+npx tsx scripts/check-mail.ts
 ```
 
 `npm run build` reads `.env.local`. With a `file:` database URL it generates the SQLite client and does not contact Postgres. Signed-in pages still need `AUTH_SECRET` and a migrated local database. The build succeeds when the Plaid id and secret are blank.
@@ -57,7 +59,9 @@ npx tsx scripts/check-community-link.ts
 
 The accounts are created by `npm run db:seed` from `lib/demo-accounts.ts` and `lib/sample-data.ts`. `/signup` redirects to sign-in and does not create a user. New members join from an invite link.
 
-A Guide creates that link on the command center. An admin creates it on People. Email is required. A display name is optional. The link is single-use and expires after 7 days. The portal does not send email, and there is no mail-provider variable. Copy the link and send it yourself. The person sets a password on the accept page and then signs in at `/login` as a Member. A Guide's invite assigns that member to them when it is accepted. An admin can assign a Guide on the invite or leave that for later. Unused invites can be revoked. Creating, accepting, and revoking an invite is written to the audit log. The raw token is not stored. The database keeps a SHA-256 hash.
+A Guide creates that link on the command center. An admin creates it on People. Email is required. A display name is optional. The link is single-use and expires after 7 days. When `RESEND_API_KEY` and `EMAIL_FROM` are both set, the form emails the link (on by default) and still shows it once so it can be copied. When either is blank, the page says email is not configured and the link is copied by hand. The person sets a password on the accept page and then signs in at `/login` as a Member. A Guide's invite assigns that member to them when it is accepted. An admin can assign a Guide on the invite or leave that for later. Unused invites can be revoked. Creating, accepting, and revoking an invite is written to the audit log. The raw token is not stored. The database keeps a SHA-256 hash.
+
+Forgot password is on the sign-in page. When email is configured, it sends a single-use link that expires in one hour. The database stores a SHA-256 hash of that token. A newer link retires the previous unused one. An address can receive at most three reset emails in an hour. The confirmation is the same whether or not the address has an active account. If email is not configured, the page says so and does not say whether the account exists. Changing the password ends sessions that signed in before the change. An authenticator app stays on if it was already on.
 
 The seed leaves one unused sample invite for Casey Nguyen (`casey@wealthcreators.test`), assigned to Jordan. The preview link is `/invite/Freedom-Invite-Casey-2026`. It is a demo credential, like the passwords above. Revoke it on any database that is not a demo. Accepting it creates a Member whose spending categories and passive-income line start at zero, with no assets or liabilities. Running the seed again refreshes that link until someone accepts it. Alex, Jordan, and Morgan keep their demo logins. Other roster members still have plans and password hashes, without a published password.
 
@@ -65,13 +69,15 @@ The seed leaves one unused sample invite for Casey Nguyen (`casey@wealthcreators
 
 `npx tsx scripts/check-invites.ts` checks invite tokens, expiry, and that accepting a link creates a Member. It also checks that the public sign-up action does not create a user. It uses the local database and deletes the accounts it creates.
 
+`npx tsx scripts/check-mail.ts` checks invite email when mail is off, on, skipped, or failed, and password-reset tokens: hash, expiry, single use, the hourly limit, and that a missing address gets the same confirmation as a real one. It does not call Resend. It uses the local database and deletes the accounts it creates.
+
 `npx tsx scripts/check-community-link.ts` checks that `MIGHTY_NETWORKS_URL` accepts only an http or https address, and that a blank value does not invent a login. It does not sign in.
 
 After sign-in:
 
 - Alex sees only the member shell: dashboard, Freedom Coach, monthly Freedom Report, weekly check-in, Freedom Gap, Wealth Efficiency, Forecast, goals, net worth, spending plan, milestones, Learn, Guide, challenges, Community, recognition, life, and legacy. The figures are Alex's plan in the database. Opening `/guide` returns to the dashboard. The home card opens the current month. Alex also has a saved prior month, so the report can show what moved. Efficiency splits income-producing capital from the rest. Forecast shows illustrated date ranges, and the decision simulator saves a what-if. One seeded scenario is shared with Jordan. A second stays private. Learn has the shared lesson catalog. Alex has two lessons finished, one in progress, and a quiz score. Guide is the shared workspace: one thread, one session note, one agenda item, and an action item. The Guide tab shows an unread count until Alex opens it. Coach shows a seeded Freedom Action Plan for this month and last month, plus one sample exchange. Chat and a fresh plan stay off until `AI_GATEWAY_API_KEY` is set. No extra seed flag is required. Alex is also enrolled in the weekly check-in challenge, with a small circle named Quiet week circle. Recognition unlocks from that plan: the 50% Freedom Score band is shared with Jordan, and the first report, the first passive-income band, and the 25% band stay private. Life has a few self-reported measures. None of those cards show balances. Legacy has a short estate checklist, two beneficiaries, two insurance summaries, and two document titles. It is an educational organizer, not legal advice. Jordan does not see it until Alex turns Legacy on under Guide access. No Social Security numbers or document files are stored. Community sits in the member menu. With `MIGHTY_NETWORKS_URL` set to an http or https address, that item opens Mighty Networks in a new tab. With it blank, or set to something that is not a web address, Community says coming soon and does not show a login.
-- Jordan sees the command center and each assigned member's progress. The assignment is the full sample roster, including Alex. Jordan can invite a new Member from the command center. That person is assigned to Jordan when they accept the link. Opening the member editor returns to the command center. Member detail includes that month's coaching report, the Freedom Action Plan when goals are shared, any forecast the member marked shared, the lessons Alex finished (titles and quiz scores, not answers), the shared workspace, challenge enrollments, recognition the member shared, and the legacy planner only when Alex has turned that scope on. The coach chat stays on Alex's side. Private scenarios and private recognition are not loaded. The guide screens still omit institutions, account numbers, category spending, and transactions. Score, totals, goals, check-ins, and learning progress are on by default. Alex can turn those off under Guide access, and those switches also hide the matching numbers inside a shared scenario, a score or debt challenge, and a shared recognition card that depends on that scope. Jordan's scheduling link is a placeholder Calendly URL. A program-wide fallback can be set with `NEXT_PUBLIC_GUIDE_SCHEDULING_URL` when a Guide has not saved one. When `MIGHTY_NETWORKS_URL` is set, Jordan’s menu and the top of the command center include the same Community link. It stays off those surfaces when the address is blank.
-- Morgan sees People, Leadership analytics, and the audit log. People can change a role, assign a Guide, pause sign-in, or invite a Member. An admin invite can name a Guide or leave the assignment for later. It does not show balances. Leadership analytics (`/admin/analytics`) shows program outcomes from the seeded roster: Freedom Score movement, milestones, goal steps, check-ins, learning, challenges, coach usage, and Guide reply time. It does not show balances, coaching-note text, or bank details, and it does not rank Guides by score. The Mighty Networks address is `MIGHTY_NETWORKS_URL` in the environment, not a control on People or Leadership. Authenticator status is on or off, never the secret. Alex and Jordan are sent away from `/admin/analytics`.
+- Jordan sees the command center and each assigned member's progress. The assignment is the full sample roster, including Alex. Jordan can invite a new Member from the command center. When email is configured, that invite can be emailed and the link is still shown to copy. That person is assigned to Jordan when they accept the link. Opening the member editor returns to the command center. Member detail includes that month's coaching report, the Freedom Action Plan when goals are shared, any forecast the member marked shared, the lessons Alex finished (titles and quiz scores, not answers), the shared workspace, challenge enrollments, recognition the member shared, and the legacy planner only when Alex has turned that scope on. The coach chat stays on Alex's side. Private scenarios and private recognition are not loaded. The guide screens still omit institutions, account numbers, category spending, and transactions. Score, totals, goals, check-ins, and learning progress are on by default. Alex can turn those off under Guide access, and those switches also hide the matching numbers inside a shared scenario, a score or debt challenge, and a shared recognition card that depends on that scope. Jordan's scheduling link is a placeholder Calendly URL. A program-wide fallback can be set with `NEXT_PUBLIC_GUIDE_SCHEDULING_URL` when a Guide has not saved one. When `MIGHTY_NETWORKS_URL` is set, Jordan’s menu and the top of the command center include the same Community link. It stays off those surfaces when the address is blank.
+- Morgan sees People, Leadership analytics, and the audit log. People can change a role, assign a Guide, pause sign-in, or invite a Member. An admin invite can name a Guide or leave the assignment for later, and can email the link when mail is configured. People does not show balances. Leadership analytics (`/admin/analytics`) shows program outcomes from the seeded roster: Freedom Score movement, milestones, goal steps, check-ins, learning, challenges, coach usage, and Guide reply time. It does not show balances, coaching-note text, or bank details, and it does not rank Guides by score. The Mighty Networks address is `MIGHTY_NETWORKS_URL` in the environment, not a control on People or Leadership. Authenticator status is on or off, never the secret. Alex and Jordan are sent away from `/admin/analytics`.
 - Guides and admins see a banner until they enroll an authenticator at Security. The demo passwords work before that. After enrollment, the next sign-in asks for a 6-digit code.
 - Sign out clears the session and returns to `/login`.
 
@@ -91,7 +97,8 @@ Tokens live as CSS variables in `app/globals.css` and are exposed to Tailwind.
 ## What this build does
 
 - **Freedom Score** = monthly passive income ÷ monthly spending plan. It can exceed 100%.
-- **Member invites.** A Guide or an admin creates a single-use link for a new Member. The link expires after 7 days and can be revoked before it is used. The accept page sets the password and creates the account. Public sign-up stays closed.
+- **Member invites.** A Guide or an admin creates a single-use link for a new Member. The link expires after 7 days and can be revoked before it is used. When email is configured, the link can be emailed and is still shown once to copy. The accept page sets the password and creates the account. Public sign-up stays closed.
+- **Password reset.** Forgot password on the sign-in page emails a one-time link when Resend is configured. The link expires in one hour. The raw token is not stored.
 - **Yield on assets** (the primary yield on Home and Net Worth) = annual passive income ÷ total assets. Annual passive is monthly passive × 12.
 - **Income-producing yield** = annual passive income ÷ holdings marked income-producing. Wealth Efficiency = annual passive income ÷ net worth, and it stays secondary. Neither one changes Freedom Score.
 - **Forecast** projects Freedom Score bands at 25, 50, 75, 100, 150, and 200 percent under conservative, current, and accelerated assumptions. Dates are ranges. The decision simulator reruns that math for a $500 expense cut, $1,000 of added passive income, or $1,000 more contributed each month. Saved runs are private unless shared.
@@ -163,6 +170,17 @@ Use the sandbox secret only. Do not put a development or production secret in th
 - **Guide privacy.** Roster and member pages show aggregates, goals, and check-in answers. They do not show institutions, account numbers, masks, or transactions.
 - **Mighty Networks** is the optional link above. It is not a sign-in integration. Whop is not integrated.
 
+## Outbound email
+
+Invites and password reset use [Resend](https://resend.com). Both stay off until `RESEND_API_KEY` and `EMAIL_FROM` are set. Invites still create a copyable link. Password reset says email is not set up, and it does not say whether the address has an account.
+
+1. Create an API key in the Resend dashboard. Put it in `.env.local` or in Vercel as `RESEND_API_KEY`. Never commit it.
+2. Marvin verifies the sending domain `wealthdomination.com` in Resend. That means adding the DNS records Resend shows (usually SPF and DKIM). This repo does not create those records. Until the domain is verified, Resend will not deliver to members.
+3. Set `EMAIL_FROM` to a sender on that domain. `Wealth Creators <noreply@wealthdomination.com>` is the suggested address. `invites@wealthdomination.com` is a fine alternative if you want invite mail separate later. One from address covers both invites and password reset.
+4. Set production `AUTH_URL` to `https://freedom.wealthdomination.com` so the links in the email use that origin.
+
+A failed send still leaves the invite link on screen for staff to copy. Password reset does not show a link in the browser.
+
 ## Go live on Vercel
 
 Local `npm run dev` stays on SQLite. The hosted app needs Postgres, because a serverless function cannot keep a SQLite file. `vercel.json` sets the build command to `npm run build`. On Vercel that generates the Postgres Prisma client and applies `prisma/postgres/migrations`. `postinstall` still runs `prisma generate` for the local SQLite client.
@@ -174,7 +192,7 @@ Local `npm run dev` stays on SQLite. The hosted app needs Postgres, because a se
 | Name | Value |
 | --- | --- |
 | `AUTH_SECRET` | Long random string (`openssl rand -base64 32`) |
-| `AUTH_URL` | `https://your-app.vercel.app` after the first deploy shows the URL |
+| `AUTH_URL` | Production: `https://freedom.wealthdomination.com`. Invite and password-reset links use this origin. A preview deploy can use its own https URL. |
 | `AUTH_TRUST_HOST` | `true` |
 | `DATABASE_URL` | Pooled Postgres URL. Neon example: `postgresql://USER:PASSWORD@HOST-pooler.../neondb?sslmode=require&pgbouncer=true&connection_limit=1` |
 | `DIRECT_URL` | Direct Postgres URL, used for migrations. If there is no pooler, set this to the same value as `DATABASE_URL`. |
@@ -184,6 +202,8 @@ Local `npm run dev` stays on SQLite. The hosted app needs Postgres, because a se
 | `AI_GATEWAY_API_KEY` | Blank until the Freedom Coach should call the model. Already set on Vercel for this project. Never commit it. |
 | `AI_GATEWAY_MODEL` | Optional. A gateway id such as `openai/gpt-4.1-mini`. Unset uses that default. |
 | `MIGHTY_NETWORKS_URL` | Optional. Full http or https address of the Mighty Networks community. Blank keeps member Community as coming soon and hides the guide link. |
+| `RESEND_API_KEY` | Blank until invites and password reset should send mail. A Resend API key. Never commit it. |
+| `EMAIL_FROM` | Blank until mail should send. Example: `Wealth Creators <noreply@wealthdomination.com>`. |
 
 4. Deploy. The build migrates the empty database. It does not seed, so demo logins do not exist yet.
 5. From your laptop, seed the demo once. Use the **direct** Postgres URL (not the pooler) for both variables. Running migrate again is safe if the Vercel build already applied it.

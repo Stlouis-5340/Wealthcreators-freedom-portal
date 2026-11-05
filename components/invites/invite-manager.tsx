@@ -14,7 +14,7 @@ export interface InviteListItem {
   copyUrl: string;
 }
 
-const initial: InviteFormState = { error: "", inviteUrl: "" };
+const initial: InviteFormState = { error: "", inviteUrl: "", emailNote: "" };
 
 const statusLabel: Record<InviteListItem["status"], string> = {
   pending: "Pending",
@@ -27,10 +27,12 @@ export function InviteManager({
   role,
   invites,
   guides,
+  emailConfigured,
 }: {
   role: "guide" | "admin";
   invites: InviteListItem[];
   guides: { id: string; name: string }[];
+  emailConfigured: boolean;
 }) {
   const [createState, createAction, createPending] = useActionState(inviteAction, initial);
   const [revokeState, revokeAction, revokePending] = useActionState(inviteAction, initial);
@@ -40,11 +42,13 @@ export function InviteManager({
       <div>
         <h2 className="text-xl font-semibold tracking-tight text-ink">Invite a member</h2>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
-          A single-use link, good for 7 days. The portal does not send email. Copy the link and send it
-          yourself.
+          A single-use link, good for 7 days.{" "}
+          {emailConfigured
+            ? "Email this link is on by default. The link is still shown once so you can copy it."
+            : "Email is not configured on this portal. The invite still works. Copy the link and send it yourself."}{" "}
           {role === "guide"
-            ? " When they accept, they join as a Member assigned to you."
-            : " They join as a Member. Assign a Wealth Guide now, or leave that for later."}
+            ? "When they accept, they join as a Member assigned to you."
+            : "They join as a Member. Assign a Wealth Guide now, or leave that for later."}
         </p>
       </div>
 
@@ -57,6 +61,11 @@ export function InviteManager({
       {createState.inviteUrl ? (
         <div className="rounded-2xl border border-gold/40 bg-surface px-4 py-4">
           <p className="text-sm font-medium text-ink">Copy this link now. It is shown only this once.</p>
+          {createState.emailNote ? (
+            <p className="mt-2 text-sm leading-6 text-muted" role="status">
+              {createState.emailNote}
+            </p>
+          ) : null}
           <CopyField url={createState.inviteUrl} />
         </div>
       ) : null}
@@ -104,6 +113,19 @@ export function InviteManager({
             <p className="text-sm text-muted">No active Wealth Guide yet. The member can be assigned later.</p>
           )
         ) : null}
+        {emailConfigured ? (
+          <label className="flex items-start gap-3 text-sm text-ink">
+            <input type="checkbox" name="sendEmail" value="yes" defaultChecked className="mt-1 h-4 w-4 accent-gold" />
+            <span>
+              Email this link
+              <span className="mt-1 block text-muted">On by default. Turn it off to copy the link only.</span>
+            </span>
+          </label>
+        ) : (
+          <p className="text-sm leading-6 text-muted" role="status">
+            Email is not configured. You can still create the link and copy it.
+          </p>
+        )}
         <button type="submit" className="wc-btn wc-btn-primary" disabled={createPending}>
           {createPending ? "Creating…" : "Create invite link"}
         </button>

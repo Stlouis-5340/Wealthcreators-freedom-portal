@@ -48,10 +48,10 @@ Spending plan is the expense denominator for Freedom Score (intentional plan, no
 - Roster: Freedom Score, 6-yr goal %, this-year steps, net worth, last active
 - Filters: all / needs attention / goals behind / near line / freedom+
 - Member detail: overview + 6-yr goals monitor; **privacy**: no bank credentials, no raw transactions
-- Invite a new Member with a single-use link. The member is assigned to that Guide when they accept.
+- Invite a new Member with a single-use link. When email is configured, the link can be emailed and is still shown to copy. The member is assigned to that Guide when they accept.
 
 ### Auth
-Sign-in is Auth.js with email and password. New members join through a Guide or Admin invite. `/signup` does not create an account. See the README.
+Sign-in is Auth.js with email and password. New members join through a Guide or Admin invite. `/signup` does not create an account. Password reset emails a one-time link when Resend is configured. See the README.
 
 ## Tech preferences
 - Next.js (App Router) + TypeScript + Tailwind CSS

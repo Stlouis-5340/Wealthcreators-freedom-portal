@@ -1,15 +1,17 @@
 "use server";
 
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { writeAudit } from "@/lib/audit";
+import { deliverMemberInvite } from "@/lib/invite-mail";
 import { acceptMemberInvite, createMemberInvite, revokeMemberInvite } from "@/lib/invite-store";
-import { inviteMessages, inviteUrl } from "@/lib/invite-token";
+import { inviteMessages, inviteUrl, normalizeDisplayName } from "@/lib/invite-token";
 import { requireActor } from "@/lib/permissions";
+import { portalOrigin } from "@/lib/portal-origin";
 
 export interface InviteFormState {
   error: string;
   inviteUrl: string;
+  emailNote: string;
 }
 
 export interface AcceptInviteState {
@@ -17,30 +19,7 @@ export interface AcceptInviteState {
   done: boolean;
 }
 
-const idleInvite: InviteFormState = { error: "", inviteUrl: "" };
-
-async function portalOrigin(): Promise<string> {
-  const configured = process.env.AUTH_URL?.trim();
-  if (configured) {
-    try {
-      const url = new URL(configured);
-      if (url.protocol === "http:" || url.protocol === "https:") return url.origin;
-    } catch {
-      // Fall through to the request host.
-    }
-  }
-  try {
-    const headerList = await headers();
-    const host = (headerList.get("x-forwarded-host") ?? headerList.get("host") ?? "").split(",")[0]?.trim() ?? "";
-    const proto = (headerList.get("x-forwarded-proto") ?? "https").split(",")[0]?.trim();
-    if (/^[A-Za-z0-9.:-]+$/.test(host) && (proto === "http" || proto === "https")) {
-      return `${proto}://${host}`;
-    }
-  } catch {
-    // Seed and scripts have no request.
-  }
-  return "http://localhost:3000";
-}
+const idleInvite: InviteFormState = { error: "", inviteUrl: "", emailNote: "" };
 
 export async function inviteAction(
   _previous: InviteFormState,
@@ -48,16 +27,16 @@ export async function inviteAction(
 ): Promise<InviteFormState> {
   const actor = await requireActor();
   if (!actor || (actor.role !== "guide" && actor.role !== "admin")) {
-    return { error: inviteMessages.staffOnly, inviteUrl: "" };
+    return { error: inviteMessages.staffOnly, inviteUrl: "", emailNote: "" };
   }
   const intent = String(formData.get("intent") ?? "");
   if (intent === "revoke") return revokeFromForm(actor, formData);
   if (intent === "create") return createFromForm(actor, formData);
-  return { error: inviteMessages.unknownAction, inviteUrl: "" };
+  return { error: inviteMessages.unknownAction, inviteUrl: "", emailNote: "" };
 }
 
 async function createFromForm(
-  actor: { id: string; role: string },
+  actor: { id: string; role: string; name: string },
   formData: FormData,
 ): Promise<InviteFormState> {
   const requestedGuide = String(formData.get("guideId") ?? "").trim();
@@ -68,17 +47,26 @@ async function createFromForm(
     createdById: actor.id,
     guideId,
   });
-  if (!created.ok) return { error: created.error, inviteUrl: "" };
+  if (!created.ok) return { error: created.error, inviteUrl: "", emailNote: "" };
+  const url = inviteUrl(await portalOrigin(), created.token);
+  const delivery = await deliverMemberInvite({
+    requested: formData.get("sendEmail") === "yes",
+    to: created.email,
+    recipientName: normalizeDisplayName(String(formData.get("name") ?? "")) ?? "",
+    inviterName: actor.name,
+    url,
+    expiresAt: created.expiresAt,
+  });
   await writeAudit({
     actorUserId: actor.id,
     action: "invite.create",
     targetType: "invite",
     targetId: created.id,
-    meta: { email: created.email, guideId: guideId ?? "" },
+    meta: { email: created.email, guideId: guideId ?? "", emailed: delivery.emailed },
   });
   revalidatePath("/guide");
   revalidatePath("/admin");
-  return { error: "", inviteUrl: inviteUrl(await portalOrigin(), created.token) };
+  return { error: "", inviteUrl: url, emailNote: delivery.note };
 }
 
 async function revokeFromForm(
@@ -86,7 +74,7 @@ async function revokeFromForm(
   formData: FormData,
 ): Promise<InviteFormState> {
   const revoked = await revokeMemberInvite(String(formData.get("inviteId") ?? ""), actor);
-  if (!revoked.ok) return { error: revoked.error, inviteUrl: "" };
+  if (!revoked.ok) return { error: revoked.error, inviteUrl: "", emailNote: "" };
   await writeAudit({
     actorUserId: actor.id,
     action: "invite.revoke",
