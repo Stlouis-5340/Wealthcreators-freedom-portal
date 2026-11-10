@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { resetCommunityForMembers } from "@/lib/community-store";
 import { seedLeadershipSignals } from "@/lib/leadership-seed";
 import { resetLegacyForMembers } from "@/lib/legacy-store";
@@ -14,6 +15,7 @@ import {
 import { nonNegative } from "@/lib/plans";
 import { requireActor, requireMember } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
+import { STAFF_MFA_ENROLL_PATH, staffNeedsEnrollment } from "@/lib/staff-mfa";
 
 async function memberSession() {
   return requireMember();
@@ -90,6 +92,7 @@ export async function toggleStepAction(stepId: string, done: boolean) {
 export async function resetPlanAction() {
   const user = await requireActor();
   if (!user) return null;
+  if (staffNeedsEnrollment(user.role, user.mfaEnabled)) redirect(STAFF_MFA_ENROLL_PATH);
   if (user.role === "member") {
     await resetSeededPlans([user.id]);
     await resetCommunityForMembers([user.id]);

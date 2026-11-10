@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth, isPortalRole } from "@/auth";
 import { FreedomReport, ReportMissing } from "@/components/freedom-report";
 import { loadMonthlyReport } from "@/lib/report-store";
+import { STAFF_MFA_ENROLL_PATH, staffNeedsEnrollment } from "@/lib/staff-mfa";
 
 export const metadata: Metadata = {
   title: "Freedom Report",
@@ -19,6 +20,7 @@ export default async function Page({
   const session = await auth();
   const user = session?.user;
   if (!user?.id || !isPortalRole(user.role)) redirect("/login");
+  if (staffNeedsEnrollment(user.role, user.mfaEnabled === true)) redirect(STAFF_MFA_ENROLL_PATH);
   const result = await loadMonthlyReport({
     viewerId: user.id,
     viewerRole: user.role,

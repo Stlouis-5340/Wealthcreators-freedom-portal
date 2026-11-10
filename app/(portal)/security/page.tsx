@@ -22,7 +22,7 @@ export default async function Page() {
         title="Security"
         lede={
           prompted
-            ? "Add an authenticator app for this Guide or Admin account. The demo password still signs you in until you enroll. After that, sign-in asks for a code."
+            ? "An authenticator app is required for Guide and Admin accounts. Password sign-in brings you here first. The rest of the portal stays closed until setup is finished. After that, every sign-in asks for a 6-digit code."
             : "An authenticator app is optional for members. Turn it on if you want a second step after your password."
         }
       />

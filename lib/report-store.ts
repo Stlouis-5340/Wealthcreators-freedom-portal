@@ -6,6 +6,7 @@ import { writeAudit } from "@/lib/audit";
 import { activeGuideAccess } from "@/lib/grants";
 import { actionLabel, toCheckInView, type WeeklyCheckInView } from "@/lib/check-in";
 import { prisma } from "@/lib/db";
+import { staffNeedsEnrollment } from "@/lib/staff-mfa";
 import {
   chicagoMonthKey,
   formatMonthLabel,
@@ -287,7 +288,16 @@ function snapshotOf(row: ReportRow): { numbers: ReportNumbers; goals: GoalSummar
 
 async function canRead(viewerId: string, role: Role, memberId: string): Promise<boolean> {
   if (role === "member") return viewerId === memberId;
-  if (role === "guide") return guideAssigned(viewerId, memberId);
+  if (role === "guide") {
+    const guide = await prisma.user.findUnique({
+      where: { id: viewerId },
+      select: { role: true, mfaEnabled: true, isActive: true },
+    });
+    if (!guide?.isActive || guide.role !== "guide" || staffNeedsEnrollment(guide.role, guide.mfaEnabled)) {
+      return false;
+    }
+    return guideAssigned(viewerId, memberId);
+  }
   return false;
 }
 

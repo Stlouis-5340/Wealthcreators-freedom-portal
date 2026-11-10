@@ -3,6 +3,7 @@ import { auth, isPortalRole } from "@/auth";
 import { homeForRole } from "@/lib/demo-accounts";
 import { isPublicInvitePath } from "@/lib/invite-path";
 import { isPublicResetPath } from "@/lib/reset-path";
+import { staffMfaGate } from "@/lib/staff-mfa";
 
 const publicPaths = new Set(["/login", "/signup"]);
 
@@ -73,6 +74,21 @@ export const proxy = auth((req) => {
     login.pathname = "/login";
     login.search = "";
     return NextResponse.redirect(login);
+  }
+
+  const mfaGate = staffMfaGate({
+    role,
+    mfaEnabled: req.auth?.user?.mfaEnabled === true,
+    pathname,
+  });
+  if (mfaGate.kind === "reject") {
+    return NextResponse.json(mfaGate.body, { status: mfaGate.status });
+  }
+  if (mfaGate.kind === "redirect") {
+    const destination = req.nextUrl.clone();
+    destination.pathname = mfaGate.pathname;
+    destination.search = "";
+    return NextResponse.redirect(destination, 303);
   }
 
   if (isPublicInvitePath(pathname) || isPublicResetPath(pathname)) return NextResponse.next();
