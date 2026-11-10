@@ -1,12 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { writeAudit } from "@/lib/audit";
 import { deliverMemberInvite } from "@/lib/invite-mail";
 import { acceptMemberInvite, createMemberInvite, revokeMemberInvite } from "@/lib/invite-store";
 import { inviteMessages, inviteUrl, normalizeDisplayName } from "@/lib/invite-token";
 import { requireActor } from "@/lib/permissions";
 import { portalOrigin } from "@/lib/portal-origin";
+import { STAFF_MFA_ENROLL_PATH, staffNeedsEnrollment } from "@/lib/staff-mfa";
 
 export interface InviteFormState {
   error: string;
@@ -29,6 +31,7 @@ export async function inviteAction(
   if (!actor || (actor.role !== "guide" && actor.role !== "admin")) {
     return { error: inviteMessages.staffOnly, inviteUrl: "", emailNote: "" };
   }
+  if (staffNeedsEnrollment(actor.role, actor.mfaEnabled)) redirect(STAFF_MFA_ENROLL_PATH);
   const intent = String(formData.get("intent") ?? "");
   if (intent === "revoke") return revokeFromForm(actor, formData);
   if (intent === "create") return createFromForm(actor, formData);

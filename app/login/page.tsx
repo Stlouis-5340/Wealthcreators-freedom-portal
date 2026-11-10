@@ -22,7 +22,7 @@ export default async function LoginPage({
       lede={
         invited
           ? "Freedom Portal accounts are issued by invite. A Wealth Guide or an admin sends a one-time link. This page does not create an account."
-          : "Members land on their Freedom Score. Wealth Guides land on the command center. Admins land on People."
+          : "Members land on their Freedom Score. Guides and admins need an authenticator app before the command center or People."
       }
       alternateHref="/signup"
       alternateLabel="Need an account? Access is by invite"

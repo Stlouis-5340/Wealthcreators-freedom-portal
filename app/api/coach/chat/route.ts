@@ -10,7 +10,8 @@ import { coachConfigured, coachModel } from "@/lib/coach-config";
 import { COACH_SYSTEM_RULES, stripInstitutions, textFromParts } from "@/lib/coach-plan";
 import { ensureCoachThread, loadCoachPrompt, recentCoachUiMessages, upsertCoachMessage } from "@/lib/coach-store";
 import { chicagoMonthKey } from "@/lib/month";
-import { requireMember } from "@/lib/permissions";
+import { requireActor } from "@/lib/permissions";
+import { staffApiBlock } from "@/lib/staff-mfa";
 
 export const instant = false;
 export const maxDuration = 60;
@@ -18,10 +19,13 @@ export const maxDuration = 60;
 const MAX_QUESTION = 2000;
 
 export async function POST(request: Request) {
-  const member = await requireMember();
-  if (!member) {
+  const actor = await requireActor();
+  const blocked = staffApiBlock(actor);
+  if (blocked) return Response.json(blocked.body, { status: blocked.status });
+  if (!actor || actor.role !== "member") {
     return Response.json({ error: "Sign in as a member to use the coach." }, { status: 401 });
   }
+  const member = actor;
   const model = coachModel();
   if (!coachConfigured() || !model) {
     return Response.json(

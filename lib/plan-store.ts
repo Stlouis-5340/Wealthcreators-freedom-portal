@@ -4,6 +4,7 @@ import { isCapitalRole } from "@/lib/efficiency";
 import { toCheckInView, type WeeklyCheckInView } from "@/lib/check-in";
 import { toNoteView, toTaskView, type CoachingNoteView, type CoachingTaskView } from "@/lib/coaching";
 import { prisma } from "@/lib/db";
+import { staffNeedsEnrollment } from "@/lib/staff-mfa";
 import { isPlaidConfigured } from "@/lib/plaid-config";
 import { applyGuideAccess, memberRow, type RosterRow } from "@/lib/roster";
 import { resetMemberScenarios } from "@/lib/scenario-store";
@@ -387,6 +388,21 @@ export async function loadPortalSnapshot(input: {
 
   const viewer = await prisma.user.findUnique({ where: { id: input.id } });
   if (!viewer || !viewer.isActive) return null;
+  if (staffNeedsEnrollment(viewer.role, viewer.mfaEnabled)) {
+    return snapshotFor(
+      {
+        id: viewer.id,
+        name: viewer.name,
+        email: viewer.email,
+        role: viewer.role === "admin" ? "admin" : "guide",
+        mfaEnabled: false,
+      },
+      null,
+      [],
+      [],
+      { checkIns: [], notes: [], tasks: [] },
+    );
+  }
   if (viewer.role === "admin") {
     return snapshotFor(
       {

@@ -5,8 +5,10 @@ import { redirect } from "next/navigation";
 import { signIn, signOut } from "@/auth";
 import { lookupLogin } from "@/lib/accounts";
 import { homeForRole } from "@/lib/demo-accounts";
-import { mfaCodeMatches } from "@/lib/mfa";
+import { matchMfaCode } from "@/lib/mfa";
 import { clearMfaPassword, readMfaPassword, stashMfaPassword } from "@/lib/mfa-step";
+import { recordMfaChallenge } from "@/lib/sign-in-access";
+import { STAFF_MFA_ENROLL_PATH, staffNeedsEnrollment } from "@/lib/staff-mfa";
 
 export interface AuthFormState {
   error: string;
@@ -49,8 +51,13 @@ export async function loginAction(
         mfaEmail: account.user.email,
       };
     }
-    const matched = await mfaCodeMatches(account.user.id, totp, false);
-    if (!matched) {
+    const factor = await matchMfaCode(account.user.id, totp, false);
+    if (!factor) {
+      await recordMfaChallenge({
+        userId: account.user.id,
+        role: account.user.role,
+        ok: false,
+      });
       return {
         error: "That authenticator code or recovery code did not match.",
         message: "",
@@ -65,7 +72,9 @@ export async function loginAction(
       email: account.user.email,
       password,
       totp,
-      redirectTo: homeForRole(account.user.role),
+      redirectTo: staffNeedsEnrollment(account.user.role, account.user.mfaEnabled)
+        ? STAFF_MFA_ENROLL_PATH
+        : homeForRole(account.user.role),
     });
   } catch (error) {
     if (error instanceof AuthError) {

@@ -17,23 +17,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         totp: { label: "Authenticator code", type: "text" },
       },
       authorize: async (credentials) => {
-        const { lookupLogin } = await import("@/lib/accounts");
-        const email = String(credentials?.email ?? "");
-        const password = String(credentials?.password ?? "");
-        const totp = String(credentials?.totp ?? "");
-        const result = await lookupLogin(email, password);
-        if (result.status !== "ok") return null;
-        if (result.user.mfaEnabled) {
-          const { mfaCodeMatches } = await import("@/lib/mfa");
-          const matched = await mfaCodeMatches(result.user.id, totp, true);
-          if (!matched) return null;
-        }
-        return {
-          id: result.user.id,
-          name: result.user.name,
-          email: result.user.email,
-          role: result.user.role,
-        };
+        const { authorizePortalUser } = await import("@/lib/sign-in-access");
+        return authorizePortalUser(
+          String(credentials?.email ?? ""),
+          String(credentials?.password ?? ""),
+          String(credentials?.totp ?? ""),
+        );
       },
     }),
   ],

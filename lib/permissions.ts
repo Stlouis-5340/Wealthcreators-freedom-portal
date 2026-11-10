@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
 import { auth, isPortalRole } from "@/auth";
 import { prisma } from "@/lib/db";
+import { STAFF_MFA_ENROLL_PATH, staffNeedsEnrollment } from "@/lib/staff-mfa";
 import type { Role } from "@/lib/types";
 
 export interface Actor {
@@ -35,11 +37,13 @@ export async function requireMember(): Promise<Actor | null> {
 export async function requireGuide(): Promise<Actor | null> {
   const actor = await requireActor();
   if (!actor || actor.role !== "guide") return null;
+  if (staffNeedsEnrollment(actor.role, actor.mfaEnabled)) redirect(STAFF_MFA_ENROLL_PATH);
   return actor;
 }
 
 export async function requireAdmin(): Promise<Actor | null> {
   const actor = await requireActor();
   if (!actor || actor.role !== "admin") return null;
+  if (staffNeedsEnrollment(actor.role, actor.mfaEnabled)) redirect(STAFF_MFA_ENROLL_PATH);
   return actor;
 }

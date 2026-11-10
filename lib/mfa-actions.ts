@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { writeAudit } from "@/lib/audit";
-import { beginMfaSetup, confirmMfaSetup, disableMfa } from "@/lib/mfa";
+import { beginMfaSetup, completeMfaEnrollment, disableMfa } from "@/lib/mfa";
 import { requireActor } from "@/lib/permissions";
 
 export interface MfaStartState {
@@ -47,17 +47,10 @@ export async function confirmMfaEnrollAction(
   const actor = await requireActor();
   if (!actor) return { ...confirmIdle, error: "Sign in to confirm the authenticator app." };
   const code = String(formData.get("code") ?? "");
-  const result = await confirmMfaSetup(actor.id, code);
+  const result = await completeMfaEnrollment(actor.id, actor.role, code);
   if (!result.ok) {
     return { ...confirmIdle, error: "That code did not match. Use the 6-digit code from the new setup." };
   }
-  await writeAudit({
-    actorUserId: actor.id,
-    action: "mfa.enroll",
-    targetType: "user",
-    targetId: actor.id,
-    meta: { role: actor.role },
-  });
   revalidatePath("/security");
   return { error: "", recoveryCodes: result.recoveryCodes };
 }

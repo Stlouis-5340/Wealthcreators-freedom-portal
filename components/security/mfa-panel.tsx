@@ -20,6 +20,7 @@ export function MfaPanel({
   prompted,
 }: {
   enabled: boolean;
+  /** Guides and admins must enroll. Members keep this optional. */
   prompted: boolean;
 }) {
   const [start, startAction, startPending] = useActionState(startMfaEnrollAction, startInitial);
@@ -31,9 +32,9 @@ export function MfaPanel({
     <div className="space-y-6">
       {prompted && !on ? (
         <p className="rounded-2xl border border-gold/50 bg-surface px-4 py-3 text-sm leading-6 text-muted">
-          <span className="font-medium text-ink">Guides and admins are asked to enroll.</span> You can
-          still sign in with the demo password until this is on. After it is on, the next sign-in asks
-          for a code.
+          <span className="font-medium text-ink">Guides and admins must enroll.</span> This is the only
+          portal page you can use until an authenticator app is on. After that, every sign-in asks for a
+          6-digit code.
         </p>
       ) : null}
 
@@ -59,6 +60,9 @@ export function MfaPanel({
           <p className="text-sm leading-6 text-muted">
             Sign-in asks for a 6-digit code after the password. Enter a current code or a recovery code
             to turn it off.
+            {prompted
+              ? " Turning it off closes the rest of the portal until you enroll again."
+              : ""}
           </p>
           <label className="block text-sm text-ink">
             Code
@@ -123,7 +127,11 @@ export function MfaPanel({
         </div>
       )}
       {disable.turnedOff ? (
-        <p className="text-sm text-success">Authenticator is off. Password sign-in works on its own again.</p>
+        <p className="text-sm text-success">
+          {prompted
+            ? "Authenticator is off. Enroll again before the rest of the portal will open."
+            : "Authenticator is off. Password sign-in works on its own again."}
+        </p>
       ) : null}
     </div>
   );

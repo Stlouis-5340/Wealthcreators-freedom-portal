@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { InviteManager, type InviteListItem } from "@/components/invites/invite-manager";
 import { DEMO_INVITE } from "@/lib/demo-invite";
 import { hashInviteToken, inviteUrl } from "@/lib/invite-token";
@@ -5,11 +6,13 @@ import { listActiveGuides, listMemberInvites } from "@/lib/invite-store";
 import { mailIsConfigured } from "@/lib/mail-config";
 import { requireActor } from "@/lib/permissions";
 import { portalOrigin } from "@/lib/portal-origin";
+import { STAFF_MFA_ENROLL_PATH, staffNeedsEnrollment } from "@/lib/staff-mfa";
 import { formatChicagoDateTime } from "@/lib/week";
 
 export async function InvitePanel({ audience }: { audience: "guide" | "admin" }) {
   const actor = await requireActor();
   if (!actor || actor.role !== audience) return null;
+  if (staffNeedsEnrollment(actor.role, actor.mfaEnabled)) redirect(STAFF_MFA_ENROLL_PATH);
   const [stored, guides, origin] = await Promise.all([
     listMemberInvites(actor),
     audience === "admin" ? listActiveGuides() : Promise.resolve([]),

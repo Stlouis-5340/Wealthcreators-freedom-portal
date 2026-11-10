@@ -8,6 +8,7 @@ import { CommunityAnchor } from "@/components/mighty-networks-link";
 import { usePortal } from "@/components/portal-provider";
 import { signOutAction } from "@/lib/auth-actions";
 import { homeForRole, roleTitle } from "@/lib/demo-accounts";
+import { staffNeedsEnrollment } from "@/lib/staff-mfa";
 import type { Role } from "@/lib/types";
 
 const securityLink = { href: "/security", label: "Security" };
@@ -87,9 +88,15 @@ export function AppShell({
   const { resetDemo } = usePortal();
   const [menuOpen, setMenuOpen] = useState(false);
   const homeHref = homeForRole(user.role);
-  const links =
-    user.role === "guide" ? guideLinks(communityUrl) : user.role === "admin" ? adminNav : memberLinks(communityUrl);
-  const showMfaBanner = (user.role === "guide" || user.role === "admin") && !user.mfaEnabled;
+  const enrollmentRequired = staffNeedsEnrollment(user.role, user.mfaEnabled);
+  const links: ShellLink[] = enrollmentRequired
+    ? [securityLink]
+    : user.role === "guide"
+      ? guideLinks(communityUrl)
+      : user.role === "admin"
+        ? adminNav
+        : memberLinks(communityUrl);
+  const showMfaBanner = enrollmentRequired;
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? "hidden" : "";
@@ -163,10 +170,9 @@ export function AppShell({
         <main id="content" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-10 lg:py-10">
           {showMfaBanner ? (
             <p className="wc-card mb-6 px-4 py-3 text-sm leading-6">
-              <span className="font-medium text-ink">Add an authenticator app.</span>{" "}
+              <span className="font-medium text-ink">Authenticator app is required.</span>{" "}
               <span className="text-muted">
-                Guides and admins are asked to turn on a second sign-in step. Demo password sign-in
-                still works until you enroll.{" "}
+                Guides and admins must finish MFA setup before the rest of the portal opens.{" "}
               </span>
               <Link href="/security" className="text-gold hover:text-gold-bright">
                 Set it up
@@ -296,7 +302,7 @@ function AccountCard({
           Sign out
         </button>
       </form>
-      {user.role === "admin" ? null : (
+      {user.role === "admin" || staffNeedsEnrollment(user.role, user.mfaEnabled) ? null : (
         <button
           type="button"
           className="mt-2 w-full text-center text-xs text-muted underline-offset-2 hover:text-ink hover:underline"
