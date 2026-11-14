@@ -78,7 +78,7 @@ const resetCopy = passwordResetEmail({
 assert(resetCopy.text.includes(`${origin}/reset-password/example-token`), "reset text includes the link");
 assert(resetCopy.text.includes("alex@wealthcreators.test"), "reset text names the account email");
 assert(resetCopy.text.includes("Your password stays the same"), "reset text says an ignored link changes nothing");
-assert(!resetCopy.text.includes("Freedom-Alex-2026"), "reset email does not include a password");
+assert(!/password\s*:/i.test(resetCopy.text), "reset email does not include a password");
 
 const calls: PortalEmail[] = [];
 const capture: MailSender = async (email) => {

@@ -6,16 +6,16 @@ Sign-in is Auth.js. Plans, goals, balances, and guide assignments are stored in 
 
 ## Auth and database
 
-Sign-in uses [Auth.js](https://authjs.dev) (`next-auth` v5) with email and password. The session is a JWT that carries Member, Wealth Guide, or Admin. Accounts, password hashes, and plan data live in the database. Guides and admins must enroll an authenticator app before they can use the portal. The seed leaves it off, so those demo passwords open the enrollment page and nothing else. Members can leave it off. After someone enrolls, the next sign-in asks for a 6-digit code.
+Sign-in uses [Auth.js](https://authjs.dev) (`next-auth` v5) with email and password. The session is a JWT that carries Member, Wealth Guide, or Admin. Accounts, password hashes, and plan data live in the database. Guides and admins must enroll an authenticator app before they can use the portal. The seed leaves it off, so a seeded demo login opens the enrollment page and nothing else. Members can leave it off. After someone enrolls, the next sign-in asks for a 6-digit code.
 
 The database is [Prisma](https://www.prisma.io/). Local development stays on SQLite (`prisma/schema.prisma` and `prisma/migrations`). Production on Vercel uses Postgres (`prisma/postgres/schema.prisma` and `prisma/postgres/migrations`). The models are the same strings, numbers, booleans, and datetimes. Prisma cannot switch the provider inside one schema file, so the build checks that those two model blocks still match. Do not run the SQLite migrations against Postgres.
 
 - Route protection sits in `proxy.ts` (the Next.js 16 replacement for `middleware.ts`).
-- Demo logins are Member Alex Rivera, Wealth Guide Jordan Lee, and Admin Morgan Hale. Their password hashes are created by the seed. Other roster members are users with plans, assigned to Jordan, and do not have published passwords.
+- Demo logins are Member Alex Rivera, Wealth Guide Jordan Lee, and Admin Morgan Hale. They exist only on a local or preview database. The seed sets their password from `DEMO_PASSWORD`, or a random one when it is blank. No demo password is published or kept in the code. Other roster members are users with plans, assigned to Jordan.
 - A member writes only their own spending lines, balances, and steps. A guide reads assigned members and does not see institutions, account numbers, or transactions, including accounts connected through Plaid. The member chooses whether the guide sees score, totals, goals, and check-ins. Category spending stays off.
 - An admin manages people, roles, assignments, and the audit log. An admin does not open member plans.
 
-`AUTH_SECRET` is the session secret. `DATABASE_URL` points at SQLite locally and at Postgres in production. Neither belongs in git. Demo passwords below are preview logins, not production credentials.
+`AUTH_SECRET` is the session secret. `DATABASE_URL` points at SQLite locally and at Postgres in production. Neither belongs in git.
 
 ## Run locally
 
@@ -52,11 +52,15 @@ npx tsx scripts/check-mfa-required.ts
 
 ## Demo logins
 
-| Role | Person | Email | Password | Lands on |
-| --- | --- | --- | --- | --- |
-| Member | Alex Rivera | alex@wealthcreators.test | Freedom-Alex-2026 | Dashboard |
-| Wealth Guide | Jordan Lee | jordan@wealthcreators.test | Freedom-Jordan-2026 | Command center |
-| Admin | Morgan Hale | admin@wealthcreators.test | Freedom-Admin-2026 | People |
+| Role | Person | Email | Lands on |
+| --- | --- | --- | --- |
+| Member | Alex Rivera | alex@wealthcreators.test | Dashboard |
+| Wealth Guide | Jordan Lee | jordan@wealthcreators.test | Command center |
+| Admin | Morgan Hale | admin@wealthcreators.test | People |
+
+Set `DEMO_PASSWORD` in `.env.local` (12 or more characters) before `npm run db:seed` to choose the password for all three. `DEMO_PASSWORD_ALEX`, `DEMO_PASSWORD_JORDAN`, and `DEMO_PASSWORD_ADMIN` override it per account. When none is set, each seed run picks a random password, so use Forgot password or set the variable and seed again.
+
+The seed refuses to run in production. Against Postgres it also needs `ALLOW_DEMO_SEED=1`, so a copied `.env.local` that points at the production database cannot reseed it. Never set that for production. The production database has no demo logins.
 
 The accounts are created by `npm run db:seed` from `lib/demo-accounts.ts` and `lib/sample-data.ts`. `/signup` redirects to sign-in and does not create a user. New members join from an invite link.
 
@@ -64,7 +68,7 @@ A Guide creates that link on the command center. An admin creates it on People. 
 
 Forgot password is on the sign-in page. When email is configured, it sends a single-use link that expires in one hour. The database stores a SHA-256 hash of that token. A newer link retires the previous unused one. An address can receive at most three reset emails in an hour. The confirmation is the same whether or not the address has an active account. If email is not configured, the page says so and does not say whether the account exists. Changing the password ends sessions that signed in before the change. An authenticator app stays on if it was already on.
 
-The seed leaves one unused sample invite for Casey Nguyen (`casey@wealthcreators.test`), assigned to Jordan. The preview link is `/invite/Freedom-Invite-Casey-2026`. It is a demo credential, like the passwords above. Revoke it on any database that is not a demo. Accepting it creates a Member whose spending categories and passive-income line start at zero, with no assets or liabilities. Running the seed again refreshes that link until someone accepts it. Alex, Jordan, and Morgan keep their demo logins. Other roster members still have plans and password hashes, without a published password.
+The seed leaves one unused sample invite for Casey Nguyen (`casey@wealthcreators.test`), assigned to Jordan. Its preview link is shown on the command center while the invite is open. It is a demo credential. Revoke it on any database that is not a demo. Accepting it creates a Member whose spending categories and passive-income line start at zero, with no assets or liabilities. Running the seed again refreshes that link until someone accepts it. Alex, Jordan, and Morgan keep their demo logins on that database. Other roster members still have plans and random password hashes.
 
 `npx tsx scripts/check-leadership.ts` checks the aggregate math, the “guides are not ranked” rule, and that `/admin/analytics` is wired only through the admin gate. To see the page, seed the database, run `npm run dev`, and sign in as Morgan. Alex is returned to the member dashboard. Jordan is returned to the command center. The check script does not sign in.
 

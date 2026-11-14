@@ -3,6 +3,7 @@ import { resetCommunityForMembers } from "../lib/community-store";
 import { DEMO_INVITE } from "../lib/demo-invite";
 import { resetLegacyForMembers } from "../lib/legacy-store";
 import { demoAccounts } from "../lib/demo-accounts";
+import { demoPassword } from "../lib/demo-passwords";
 import { prisma } from "../lib/db";
 import { hashInviteToken, INVITE_TTL_MS } from "../lib/invite-token";
 import { hashPassword } from "../lib/passwords";
@@ -25,7 +26,26 @@ const clearedSecurity = {
   mfaRecoveryHashes: "[]",
 };
 
+/**
+ * The demo seed creates logins for Alex, Jordan, and Morgan. It must never run
+ * against production. Postgres needs ALLOW_DEMO_SEED=1 so a copied .env.local
+ * that points at production cannot reseed it by accident.
+ */
+function assertDemoSeedAllowed() {
+  const production = process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production";
+  if (production) {
+    throw new Error("The demo seed does not run in production.");
+  }
+  const url = process.env.DATABASE_URL ?? "";
+  if (/^postgres(ql)?:\/\//i.test(url) && process.env.ALLOW_DEMO_SEED !== "1") {
+    throw new Error(
+      "The demo seed only runs against Postgres when ALLOW_DEMO_SEED=1. Never set it for the production database.",
+    );
+  }
+}
+
 async function main() {
+  assertDemoSeedAllowed();
   const guide = guideSeed();
   await prisma.user.upsert({
     where: { id: guide.id },
@@ -93,12 +113,13 @@ async function main() {
 
   const admin = demoAccounts.find((account) => account.role === "admin");
   if (!admin) throw new Error("Admin demo account is missing.");
+  const adminPassword = demoPassword(admin.id).password;
   await prisma.user.upsert({
     where: { id: admin.id },
     create: {
       id: admin.id,
       email: admin.email,
-      passwordHash: hashPassword(admin.password),
+      passwordHash: hashPassword(adminPassword),
       name: admin.name,
       role: admin.role,
       lastActive: "2026-11-03",
@@ -108,7 +129,7 @@ async function main() {
     },
     update: {
       email: admin.email,
-      passwordHash: hashPassword(admin.password),
+      passwordHash: hashPassword(adminPassword),
       name: admin.name,
       role: admin.role,
       ...clearedSecurity,
@@ -223,6 +244,11 @@ async function seedSampleInvite(): Promise<void> {
 
 main()
   .then(async () => {
+    if (!process.env.DEMO_PASSWORD) {
+      console.log(
+        "Demo logins were seeded. Set DEMO_PASSWORD (12+ characters) in .env.local and seed again to choose their password. Without it each run sets a random one.",
+      );
+    }
     await prisma.$disconnect();
   })
   .catch(async (error: unknown) => {

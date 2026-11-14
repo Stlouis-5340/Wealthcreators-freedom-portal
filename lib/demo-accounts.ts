@@ -4,14 +4,13 @@ export interface DemoAccount {
   id: string;
   name: string;
   email: string;
-  password: string;
   role: Role;
   title: string;
 }
 
 /**
- * Demo logins seeded into the database.
- * Passwords are preview credentials, documented in the README, not production secrets.
+ * Demo logins seeded into a local or preview database.
+ * No password is stored in the code. See lib/demo-passwords.ts.
  * Jordan Lee is assigned to the full sample roster, including Alex Rivera.
  */
 export const demoAccounts: readonly DemoAccount[] = [
@@ -19,7 +18,6 @@ export const demoAccounts: readonly DemoAccount[] = [
     id: "alex",
     name: "Alex Rivera",
     email: "alex@wealthcreators.test",
-    password: "Freedom-Alex-2026",
     role: "member",
     title: "Member",
   },
@@ -27,7 +25,6 @@ export const demoAccounts: readonly DemoAccount[] = [
     id: "jordan",
     name: "Jordan Lee",
     email: "jordan@wealthcreators.test",
-    password: "Freedom-Jordan-2026",
     role: "guide",
     title: "Wealth Guide",
   },
@@ -35,7 +32,6 @@ export const demoAccounts: readonly DemoAccount[] = [
     id: "admin",
     name: "Morgan Hale",
     email: "admin@wealthcreators.test",
-    password: "Freedom-Admin-2026",
     role: "admin",
     title: "Admin",
   },
