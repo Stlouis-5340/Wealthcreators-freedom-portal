@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { demoAccounts } from "@/lib/demo-accounts";
+import { demoPassword } from "@/lib/demo-passwords";
 import {
   alexAssets,
   alexExpenses,
@@ -97,7 +98,7 @@ export function guideSeed(): SeedGuide {
   return {
     id: account.id,
     email: account.email,
-    password: account.password,
+    password: demoPassword(account.id).password,
     name: account.name,
     role: "guide",
   };
@@ -211,7 +212,7 @@ function aggregatePlan(member: MemberSeed): SeedPlan {
 
 function memberPassword(id: string): string {
   const account = demoAccounts.find((item) => item.id === id);
-  if (account) return account.password;
+  if (account) return demoPassword(account.id).password;
   return randomBytes(32).toString("hex");
 }
 
@@ -221,7 +222,7 @@ export function memberSeeds(): SeedMember[] {
   const alex: SeedMember = {
     id: alexIdentity.id,
     email: alexAccount.email,
-    password: alexAccount.password,
+    password: demoPassword(alexAccount.id).password,
     name: alexIdentity.name,
     role: "member",
     lastActive: alexIdentity.lastActive,

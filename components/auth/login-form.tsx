@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { cancelMfaAction, loginAction, type AuthFormState } from "@/lib/auth-actions";
-import { demoAccounts } from "@/lib/demo-accounts";
 
 const initial: AuthFormState = { error: "", message: "", mfaEmail: "" };
 
@@ -77,17 +76,6 @@ export function LoginForm() {
           Use a different account
         </button>
       ) : null}
-      <div className="rounded-xl border border-line bg-background px-3 py-3 text-xs leading-5 text-muted">
-        <p className="font-medium text-ink">Demo accounts</p>
-        <ul className="mt-2 space-y-2">
-          {demoAccounts.map((account) => (
-            <li key={account.id}>
-              <span className="text-gold-muted">{account.title}.</span> {account.email}
-              <span className="block font-mono text-ink">{account.password}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
     </form>
   );
 }
