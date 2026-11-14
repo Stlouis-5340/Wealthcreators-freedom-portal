@@ -11,6 +11,7 @@ export interface InviteListItem {
   expiresAt: string;
   guideName: string;
   createdByName: string;
+  role: "member" | "guide" | "admin";
   copyUrl: string;
 }
 
@@ -48,7 +49,7 @@ export function InviteManager({
             : "Email is not configured on this portal. The invite still works. Copy the link and send it yourself."}{" "}
           {role === "guide"
             ? "When they accept, they join as a Member assigned to you."
-            : "They join as a Member. Assign a Wealth Guide now, or leave that for later."}
+            : "They join with the role you choose. A Member can be assigned a Wealth Guide now or later. A Wealth Guide or Admin must set up an authenticator app on first sign-in."}
         </p>
       </div>
 
@@ -97,9 +98,19 @@ export function InviteManager({
           </label>
         </div>
         {role === "admin" ? (
+          <label className="block text-sm text-ink">
+            Role
+            <select name="role" className="wc-input mt-1.5 sm:max-w-sm" defaultValue="member">
+              <option value="member">Member</option>
+              <option value="guide">Wealth Guide</option>
+              <option value="admin">Admin</option>
+            </select>
+          </label>
+        ) : null}
+        {role === "admin" ? (
           guides.length > 0 ? (
             <label className="block text-sm text-ink">
-              Wealth Guide
+              Wealth Guide (Members only)
               <select name="guideId" className="wc-input mt-1.5 sm:max-w-sm" defaultValue="">
                 <option value="">Assign later</option>
                 {guides.map((guide) => (
@@ -148,7 +159,13 @@ export function InviteManager({
                   <p className="text-sm font-medium text-ink">{invite.name || invite.email}</p>
                   {invite.name ? <p className="text-sm text-muted">{invite.email}</p> : null}
                   <p className="mt-1 text-xs text-muted">
-                    {invite.guideName ? `Guide ${invite.guideName}` : "No Guide yet"}
+                    {invite.role === "admin"
+                      ? "Admin"
+                      : invite.role === "guide"
+                        ? "Wealth Guide"
+                        : invite.guideName
+                          ? `Guide ${invite.guideName}`
+                          : "No Guide yet"}
                     {role === "admin" ? ` · Created by ${invite.createdByName}` : ""}
                     {" · "}
                     {invite.status === "pending" ? "Expires" : "Was due"} {invite.expiresAt}

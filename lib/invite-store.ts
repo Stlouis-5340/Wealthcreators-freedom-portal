@@ -5,6 +5,8 @@ import { prisma } from "@/lib/db";
 import {
   canManageInvite,
   hashInviteToken,
+  INVITE_ROLES,
+  type InviteRole,
   inviteMessages,
   inviteStatus,
   isInviteTokenShape,
@@ -32,6 +34,7 @@ export interface StoredInvite {
   createdByName: string;
   createdById: string;
   guideId: string | null;
+  role: InviteRole;
 }
 
 type InviteResult<T> = { ok: true } & T | { ok: false; error: string };
@@ -62,6 +65,7 @@ function toStored(
     createdByName: row.createdBy.name,
     createdById: row.createdById,
     guideId: row.guideId,
+    role: INVITE_ROLES.includes(row.role as InviteRole) ? (row.role as InviteRole) : "member",
   };
 }
 
@@ -99,9 +103,12 @@ export async function createMemberInvite(input: {
   name: string;
   createdById: string;
   guideId: string | null;
+  role?: InviteRole;
   now?: Date;
   expiresAt?: Date;
-}): Promise<InviteResult<{ id: string; token: string; expiresAt: Date; email: string }>> {
+}): Promise<InviteResult<{ id: string; token: string; expiresAt: Date; email: string; role: InviteRole }>> {
+  const role: InviteRole = input.role ?? "member";
+  if (!INVITE_ROLES.includes(role)) return { ok: false, error: inviteMessages.badRole };
   const email = normalizeEmail(input.email);
   if (!email) return { ok: false, error: inviteMessages.badEmail };
   const name = normalizeDisplayName(input.name);
@@ -110,6 +117,12 @@ export async function createMemberInvite(input: {
   const creator = await prisma.user.findUnique({ where: { id: input.createdById } });
   if (!creator || !creator.isActive || (creator.role !== "guide" && creator.role !== "admin")) {
     return { ok: false, error: inviteMessages.staffOnly };
+  }
+  if (role !== "member" && creator.role !== "admin") {
+    return { ok: false, error: inviteMessages.staffInviteAdminOnly };
+  }
+  if (role !== "member" && input.guideId) {
+    return { ok: false, error: inviteMessages.staffNoGuide };
   }
   if (creator.role === "guide" && input.guideId !== creator.id) {
     return { ok: false, error: inviteMessages.guideOwn };
@@ -139,11 +152,12 @@ export async function createMemberInvite(input: {
       tokenHash: hashInviteToken(token),
       createdById: creator.id,
       guideId: input.guideId,
+      role,
       expiresAt,
     },
     select: { id: true },
   });
-  return { ok: true, id: created.id, token, expiresAt, email };
+  return { ok: true, id: created.id, token, expiresAt, email, role };
 }
 
 export async function revokeMemberInvite(
@@ -190,7 +204,14 @@ export async function acceptMemberInvite(
   token: string,
   input: { name: string; password: string; confirm: string },
 ): Promise<
-  InviteResult<{ email: string; userId: string; inviteId: string; guideId: string | null; assigned: boolean }>
+  InviteResult<{
+    email: string;
+    userId: string;
+    inviteId: string;
+    guideId: string | null;
+    assigned: boolean;
+    role: InviteRole;
+  }>
 > {
   if (!isInviteTokenShape(token)) return { ok: false, error: inviteMessages.invalid };
   const name = normalizeDisplayName(input.name);
@@ -218,6 +239,9 @@ export async function acceptMemberInvite(
       const taken = await tx.user.findUnique({ where: { email: invite.email }, select: { id: true } });
       if (taken) return { ok: false, error: inviteMessages.exists };
 
+      const role: InviteRole = INVITE_ROLES.includes(invite.role as InviteRole)
+        ? (invite.role as InviteRole)
+        : "member";
       const userId = randomUUID();
       await tx.user.create({
         data: {
@@ -225,9 +249,9 @@ export async function acceptMemberInvite(
           email: invite.email,
           passwordHash,
           name,
-          role: "member",
+          role,
           lastActive: chicagoDateISO(now),
-          coachingNote: NEW_MEMBER_NOTE,
+          coachingNote: role === "member" ? NEW_MEMBER_NOTE : "",
           rosterSort: 0,
           cohort: "",
           isActive: true,
@@ -242,7 +266,7 @@ export async function acceptMemberInvite(
 
       let assigned = false;
       let guideId: string | null = null;
-      if (invite.guideId) {
+      if (role === "member" && invite.guideId) {
         const guide = await tx.user.findUnique({
           where: { id: invite.guideId },
           select: { id: true, role: true, isActive: true },
@@ -269,7 +293,7 @@ export async function acceptMemberInvite(
       if (claimed.count !== 1) {
         throw new Error("invite-claim-failed");
       }
-      return { ok: true as const, email: invite.email, userId, inviteId: invite.id, guideId, assigned };
+      return { ok: true as const, email: invite.email, userId, inviteId: invite.id, guideId, assigned, role };
     });
   } catch (error) {
     if (error instanceof Error && error.message === "invite-claim-failed") {
