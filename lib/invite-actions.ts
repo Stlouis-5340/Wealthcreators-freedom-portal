@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { writeAudit } from "@/lib/audit";
 import { deliverMemberInvite } from "@/lib/invite-mail";
 import { acceptMemberInvite, createMemberInvite, revokeMemberInvite } from "@/lib/invite-store";
-import { inviteMessages, inviteUrl, normalizeDisplayName } from "@/lib/invite-token";
+import { inviteMessages, inviteUrl, normalizeDisplayName, parseInviteRole } from "@/lib/invite-token";
 import { requireActor } from "@/lib/permissions";
 import { portalOrigin } from "@/lib/portal-origin";
 import { STAFF_MFA_ENROLL_PATH, staffNeedsEnrollment } from "@/lib/staff-mfa";
@@ -42,13 +42,17 @@ async function createFromForm(
   actor: { id: string; role: string; name: string },
   formData: FormData,
 ): Promise<InviteFormState> {
+  const requestedRole = actor.role === "admin" ? String(formData.get("role") ?? "member").trim() || "member" : "member";
+  const role = parseInviteRole(requestedRole);
+  if (!role) return { error: inviteMessages.badRole, inviteUrl: "", emailNote: "" };
   const requestedGuide = String(formData.get("guideId") ?? "").trim();
-  const guideId = actor.role === "guide" ? actor.id : requestedGuide || null;
+  const guideId = actor.role === "guide" ? actor.id : role === "member" ? requestedGuide || null : null;
   const created = await createMemberInvite({
     email: String(formData.get("email") ?? ""),
     name: String(formData.get("name") ?? ""),
     createdById: actor.id,
     guideId,
+    role,
   });
   if (!created.ok) return { error: created.error, inviteUrl: "", emailNote: "" };
   const url = inviteUrl(await portalOrigin(), created.token);
@@ -59,13 +63,14 @@ async function createFromForm(
     inviterName: actor.name,
     url,
     expiresAt: created.expiresAt,
+    role: created.role,
   });
   await writeAudit({
     actorUserId: actor.id,
     action: "invite.create",
     targetType: "invite",
     targetId: created.id,
-    meta: { email: created.email, guideId: guideId ?? "", emailed: delivery.emailed },
+    meta: { email: created.email, guideId: guideId ?? "", role: created.role, emailed: delivery.emailed },
   });
   revalidatePath("/guide");
   revalidatePath("/admin");
@@ -105,7 +110,7 @@ export async function acceptInviteAction(
     action: "invite.accept",
     targetType: "invite",
     targetId: accepted.inviteId,
-    meta: { email: accepted.email, guideId: accepted.guideId ?? "", assigned: accepted.assigned },
+    meta: { email: accepted.email, guideId: accepted.guideId ?? "", assigned: accepted.assigned, role: accepted.role },
   });
   revalidatePath("/guide");
   revalidatePath("/admin");

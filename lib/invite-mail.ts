@@ -21,6 +21,7 @@ export async function deliverMemberInvite(input: {
   inviterName: string;
   url: string;
   expiresAt: Date;
+  role?: "member" | "guide" | "admin";
   send?: MailSender;
 }): Promise<{ emailed: InviteEmailStatus; note: string }> {
   if (!mailIsConfigured()) {
@@ -35,6 +36,7 @@ export async function deliverMemberInvite(input: {
     inviterName: input.inviterName,
     url: input.url,
     expiresAt: input.expiresAt,
+    role: input.role,
   });
   const sent = await sendPortalEmail(message, input.send);
   if (!sent.ok) return { emailed: "failed", note: inviteEmailNotes.failed };

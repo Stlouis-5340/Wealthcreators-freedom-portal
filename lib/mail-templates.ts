@@ -76,7 +76,10 @@ export function inviteEmail(input: {
   inviterName: string;
   url: string;
   expiresAt: Date;
+  role?: "member" | "guide" | "admin";
 }): PortalEmail {
+  const account =
+    input.role === "admin" ? "admin account" : input.role === "guide" ? "Wealth Guide account" : "member account";
   const who = input.recipientName.trim();
   const inviter = input.inviterName.trim();
   const greeting = who ? `Hello ${who},` : "Hello,";
@@ -87,11 +90,11 @@ export function inviteEmail(input: {
   return message({
     to: input.to,
     subject: "Your Freedom Portal invite",
-    preheader: "A one-time link to create your member sign-in.",
+    preheader: `A one-time link to create your ${input.role === "admin" ? "admin" : input.role === "guide" ? "Wealth Guide" : "member"} sign-in.`,
     greeting,
     lines: [
       invited,
-      `Use the link below to choose a password and open your member account. The link works once and expires on ${expires}.`,
+      `Use the link below to choose a password and open your ${account}. The link works once and expires on ${expires}.`,
       "If you were not expecting this invite, you can ignore this email.",
     ],
     url: input.url,

@@ -26,6 +26,7 @@ export async function InvitePanel({ audience }: { audience: "guide" | "admin" })
     status: invite.status,
     expiresAt: formatChicagoDateTime(invite.expiresAt.toISOString()),
     guideName: invite.guideName,
+    role: invite.role,
     createdByName: invite.createdByName,
     copyUrl:
       invite.status === "pending" && invite.tokenHash === demoHash

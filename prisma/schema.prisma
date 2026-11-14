@@ -708,6 +708,8 @@ model MemberInvite {
   createdBy   User      @relation("InviteCreator", fields: [createdById], references: [id], onDelete: Cascade)
   guideId     String?
   guide       User?     @relation("InviteGuide", fields: [guideId], references: [id], onDelete: SetNull)
+  /// Role the account gets on acceptance: member, guide, or admin. Only an admin can invite staff.
+  role        String    @default("member")
   expiresAt   DateTime
   acceptedAt  DateTime?
   revokedAt   DateTime?

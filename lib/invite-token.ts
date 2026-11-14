@@ -23,7 +23,18 @@ export const inviteMessages = {
   unavailable: "That invite is not available.",
   notOpen: "That invite is no longer open.",
   unknownAction: "That invite action is not available.",
+  badRole: "Choose Member, Wealth Guide, or Admin.",
+  staffInviteAdminOnly: "Only an admin can invite a Wealth Guide or an admin.",
+  staffNoGuide: "Only a Member invite can be assigned to a Wealth Guide.",
 } as const;
+
+/** Role an invite grants on acceptance. Only an admin can create guide or admin invites. */
+export const INVITE_ROLES = ["member", "guide", "admin"] as const;
+export type InviteRole = (typeof INVITE_ROLES)[number];
+
+export function parseInviteRole(value: string): InviteRole | null {
+  return (INVITE_ROLES as readonly string[]).includes(value) ? (value as InviteRole) : null;
+}
 
 export type InviteStatus = "pending" | "accepted" | "revoked" | "expired";
 
