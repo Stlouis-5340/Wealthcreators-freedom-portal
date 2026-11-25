@@ -7,7 +7,7 @@ export const inviteMessages = {
   invalid: "This invite link is not valid.",
   revoked: "This invite was revoked. Ask your Wealth Guide or an admin for a new link.",
   expired: "This invite has expired. Ask your Wealth Guide or an admin for a new link.",
-  used: "This invite was already used. Sign in with that email if the account is yours.",
+  used: "This invite already created a sign-in. Sign in with that email and the password you set. Forgot it? Use Forgot password on the sign-in page.",
   exists:
     "An account with this email already exists. Sign in, or ask for a new invite to a different email.",
   staffOnly: "Sign in as a Wealth Guide or an admin to invite a member.",

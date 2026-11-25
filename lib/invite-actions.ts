@@ -9,6 +9,7 @@ import { inviteMessages, inviteUrl, normalizeDisplayName, parseInviteRole } from
 import { requireActor } from "@/lib/permissions";
 import { portalOrigin } from "@/lib/portal-origin";
 import { STAFF_MFA_ENROLL_PATH, staffNeedsEnrollment } from "@/lib/staff-mfa";
+import { INVITE_READY_NOTICE } from "@/lib/invite-path";
 
 export interface InviteFormState {
   error: string;
@@ -114,5 +115,8 @@ export async function acceptInviteAction(
   });
   revalidatePath("/guide");
   revalidatePath("/admin");
-  return { error: "", done: true };
+  // Leave the invite page before the action response re-renders it. A revalidating
+  // action re-renders the current route, and the now-accepted token would show
+  // "Invite unavailable" right after the account was created.
+  redirect(`/login?notice=${INVITE_READY_NOTICE}`);
 }

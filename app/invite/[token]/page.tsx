@@ -3,6 +3,7 @@ import { AuthFrame } from "@/components/auth/auth-frame";
 import { AcceptInviteForm } from "@/components/auth/accept-invite-form";
 import { auth, isPortalRole } from "@/auth";
 import { previewMemberInvite } from "@/lib/invite-store";
+import { inviteMessages } from "@/lib/invite-token";
 
 export const metadata: Metadata = {
   title: "Create your sign-in",
@@ -19,17 +20,22 @@ export default async function InviteAcceptPage({
 }) {
   const { token } = await params;
   const invite = await previewMemberInvite(token);
+  // Read-only: opening or prefetching this page never consumes the invite.
+  // Only the Create sign-in form POST (acceptInviteAction) marks it accepted.
   if (!invite.ok) {
+    const alreadyUsed = invite.error === inviteMessages.used;
     return (
       <AuthFrame
-        title="Invite unavailable"
+        title={alreadyUsed ? "Your sign-in is already set up" : "Invite unavailable"}
         lede={invite.error}
         alternateHref="/login"
         alternateLabel="Sign in"
       >
-        <p className="text-sm leading-6 text-muted">
-          Freedom Portal accounts are issued by invite. Ask your Wealth Guide or an admin for a new link.
-        </p>
+        {alreadyUsed ? null : (
+          <p className="text-sm leading-6 text-muted">
+            Freedom Portal accounts are issued by invite. Ask your Wealth Guide or an admin for a new link.
+          </p>
+        )}
       </AuthFrame>
     );
   }
