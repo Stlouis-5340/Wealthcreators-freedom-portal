@@ -135,8 +135,13 @@ export async function createMemberInvite(input: {
   }
 
   const now = input.now ?? new Date();
-  const existingUser = await prisma.user.findUnique({ where: { email }, select: { id: true } });
-  if (existingUser) return { ok: false, error: "That email already has a Freedom Portal account." };
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true, role: true, mfaEnabled: true },
+  });
+  if (existingUser && !canReplaceUnclaimedStaff(existingUser, { creatorId: creator.id, creatorRole: creator.role, inviteRole: role })) {
+    return { ok: false, error: "That email already has a Freedom Portal account." };
+  }
   const pending = await prisma.memberInvite.findFirst({
     where: { email, acceptedAt: null, revokedAt: null, expiresAt: { gt: now } },
     select: { id: true },
@@ -158,6 +163,25 @@ export async function createMemberInvite(input: {
     select: { id: true },
   });
   return { ok: true, id: created.id, token, expiresAt, email, role };
+}
+
+/**
+ * A Wealth Guide or admin account that never finished authenticator setup has never opened
+ * the portal, because staff must enroll before any other page. An admin may send that email a
+ * fresh staff invite. Accepting it sets a new password on the same account (same id and audit
+ * history) instead of creating a second one.
+ */
+export function canReplaceUnclaimedStaff(
+  user: { id: string; role: string; mfaEnabled: boolean },
+  ctx: { creatorId: string; creatorRole: string; inviteRole: InviteRole },
+): boolean {
+  return (
+    ctx.creatorRole === "admin" &&
+    ctx.inviteRole !== "member" &&
+    user.id !== ctx.creatorId &&
+    (user.role === "guide" || user.role === "admin") &&
+    !user.mfaEnabled
+  );
 }
 
 export async function revokeMemberInvite(
@@ -211,6 +235,7 @@ export async function acceptMemberInvite(
     guideId: string | null;
     assigned: boolean;
     role: InviteRole;
+    replaced: boolean;
   }>
 > {
   if (!isInviteTokenShape(token)) return { ok: false, error: inviteMessages.invalid };
@@ -236,12 +261,52 @@ export async function acceptMemberInvite(
       const status = inviteStatus(invite, now);
       if (status !== "pending") return { ok: false, error: messageForStatus(status) };
 
-      const taken = await tx.user.findUnique({ where: { email: invite.email }, select: { id: true } });
-      if (taken) return { ok: false, error: inviteMessages.exists };
-
       const role: InviteRole = INVITE_ROLES.includes(invite.role as InviteRole)
         ? (invite.role as InviteRole)
         : "member";
+
+      const taken = await tx.user.findUnique({
+        where: { email: invite.email },
+        select: { id: true, role: true, mfaEnabled: true },
+      });
+      if (taken) {
+        const creator = await tx.user.findUnique({ where: { id: invite.createdById }, select: { role: true } });
+        const replaceable =
+          creator != null &&
+          canReplaceUnclaimedStaff(taken, { creatorId: invite.createdById, creatorRole: creator.role, inviteRole: role });
+        if (!replaceable) return { ok: false, error: inviteMessages.exists };
+        await tx.user.update({
+          where: { id: taken.id },
+          data: {
+            passwordHash,
+            name,
+            role,
+            isActive: true,
+            lastActive: chicagoDateISO(now),
+            mfaEnabled: false,
+            mfaSecretEnc: "",
+            mfaPendingSecretEnc: "",
+            mfaRecoveryHashes: "[]",
+            passwordVersion: { increment: 1 },
+          },
+        });
+        const claimedExisting = await tx.memberInvite.updateMany({
+          where: { id: invite.id, acceptedAt: null, revokedAt: null, expiresAt: { gt: now } },
+          data: { acceptedAt: now },
+        });
+        if (claimedExisting.count !== 1) throw new Error("invite-claim-failed");
+        return {
+          ok: true as const,
+          email: invite.email,
+          userId: taken.id,
+          inviteId: invite.id,
+          guideId: null,
+          assigned: false,
+          role,
+          replaced: true,
+        };
+      }
+
       const userId = randomUUID();
       await tx.user.create({
         data: {
@@ -293,7 +358,7 @@ export async function acceptMemberInvite(
       if (claimed.count !== 1) {
         throw new Error("invite-claim-failed");
       }
-      return { ok: true as const, email: invite.email, userId, inviteId: invite.id, guideId, assigned, role };
+      return { ok: true as const, email: invite.email, userId, inviteId: invite.id, guideId, assigned, role, replaced: false };
     });
   } catch (error) {
     if (error instanceof Error && error.message === "invite-claim-failed") {
