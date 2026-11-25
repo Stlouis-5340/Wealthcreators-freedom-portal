@@ -111,7 +111,13 @@ export async function acceptInviteAction(
     action: "invite.accept",
     targetType: "invite",
     targetId: accepted.inviteId,
-    meta: { email: accepted.email, guideId: accepted.guideId ?? "", assigned: accepted.assigned, role: accepted.role },
+    meta: {
+      email: accepted.email,
+      guideId: accepted.guideId ?? "",
+      assigned: accepted.assigned,
+      role: accepted.role,
+      replacedUnclaimedAccount: accepted.replaced,
+    },
   });
   revalidatePath("/guide");
   revalidatePath("/admin");
